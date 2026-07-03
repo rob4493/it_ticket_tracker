@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Ticket Detail | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="page-section form-page">
+    {% if ticket %}
+      <p class="eyebrow">Admin Ticket Detail</p>
+      <h1>{{ ticket.ticket_number }}</h1>
+      <p>
+        Read-only ticket detail view. Status updates, assignment, and admin
+        notes will be added in the next admin phases.
+      </p>
+
+      <div class="submission-summary" aria-label="Admin ticket summary">
+        <dl>
+          <div>
+            <dt>Requester</dt>
+            <dd>{{ ticket.requester_name }}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>{{ ticket.requester_email }}</dd>
+          </div>
+          <div>
+            <dt>Employee ID</dt>
+            <dd>{{ ticket.requester_employee_id or "Not provided" }}</dd>
+          </div>
+          <div>
+            <dt>Department</dt>
+            <dd>{{ ticket.department }}</dd>
+          </div>
+          <div>
+            <dt>Issue Type</dt>
+            <dd>{{ ticket.issue_type }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{{ ticket.status }}</dd>
+          </div>
+          <div>
+            <dt>Employee Priority</dt>
+            <dd>{{ ticket.user_selected_priority }}</dd>
+          </div>
+          <div>
+            <dt>Smart Suggestion</dt>
+            <dd>
+              <span class="priority-suggestion priority-{{ ticket.suggested_priority|lower }}">
+                {{ ticket.suggested_priority }}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Assignee</dt>
+            <dd>{{ ticket.assigned_to or "Unassigned" }}</dd>
+          </div>
+          <div>
+            <dt>Created</dt>
+            <dd>{{ ticket.created_at }}</dd>
+          </div>
+        </dl>
+
+        <div class="summary-description">
+          <h2>Description</h2>
+          <p>{{ ticket.description }}</p>
+        </div>
+
+        <div class="summary-description">
+          <h2>Admin Triage Reason</h2>
+          <p>{{ ticket.priority_reason }}</p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a class="button button-primary" href="{{ url_for('admin_dashboard') }}">Back to Admin Console</a>
+      </div>
+    {% else %}
+      <p class="eyebrow">Admin Ticket Detail</p>
+      <h1>Ticket Not Found</h1>
+      <p>
+        No ticket exists with that ID.
+      </p>
+      <div class="form-actions">
+        <a class="button button-primary" href="{{ url_for('admin_dashboard') }}">Back to Admin Console</a>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

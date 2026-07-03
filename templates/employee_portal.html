@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Portal | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="page-section form-page">
+    <p class="eyebrow">Employee Portal</p>
+    <h1>Employee ticket access</h1>
+    <p>
+      Check submitted tickets by ticket number, email address, or both.
+    </p>
+
+    {% if errors %}
+      <div class="alert alert-error" role="alert">
+        <strong>Please fix the following:</strong>
+        <ul>
+          {% for error in errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form class="ticket-form lookup-form" method="post" action="{{ url_for('employee_portal') }}">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="ticket_number">Ticket Number</label>
+          <input
+            id="ticket_number"
+            name="ticket_number"
+            type="text"
+            placeholder="IT-2026-0001"
+            value="{{ search.ticket_number }}"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="employee@company.com"
+            value="{{ search.email }}"
+          >
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="button button-primary" type="submit">Find Tickets</button>
+        <a class="button button-secondary" href="{{ url_for('submit_ticket') }}">Submit New Ticket</a>
+      </div>
+    </form>
+
+    {% if lookup_attempted and not errors %}
+      <section class="lookup-results" aria-labelledby="lookup-results-title">
+        <div class="section-heading-row">
+          <div>
+            <p class="eyebrow">Lookup Results</p>
+            <h2 id="lookup-results-title">Matching tickets</h2>
+          </div>
+          <span class="status-chip">{{ tickets|length }} found</span>
+        </div>
+
+        {% if tickets %}
+          <div class="ticket-result-list">
+            {% for ticket in tickets %}
+              <article class="ticket-result">
+                <div class="ticket-result-header">
+                  <div>
+                    <p class="ticket-number">{{ ticket.ticket_number }}</p>
+                    <h3>{{ ticket.issue_type }}</h3>
+                  </div>
+                  <span class="status-chip">{{ ticket.status }}</span>
+                </div>
+
+                <dl class="ticket-meta">
+                  <div>
+                    <dt>Priority</dt>
+                    <dd>{{ ticket.user_selected_priority }}</dd>
+                  </div>
+                  <div>
+                    <dt>Department</dt>
+                    <dd>{{ ticket.department }}</dd>
+                  </div>
+                  <div>
+                    <dt>Submitted</dt>
+                    <dd>{{ ticket.created_at }}</dd>
+                  </div>
+                  <div>
+                    <dt>Updated</dt>
+                    <dd>{{ ticket.updated_at }}</dd>
+                  </div>
+                </dl>
+
+                <div class="summary-description">
+                  <h4>Description</h4>
+                  <p>{{ ticket.description }}</p>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="alert alert-info">
+            No matching tickets were found. Check the ticket number or email address and try again.
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+  </section>
+{% endblock %}

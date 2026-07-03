@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="workspace-intro">
+    <p class="eyebrow">Admin Console</p>
+    <h1>Ticket queue</h1>
+    <p>
+      Review submitted tickets, spot urgent work, and open individual tickets
+      for detailed triage.
+    </p>
+  </section>
+
+  <section class="metric-strip" aria-label="Admin ticket metrics">
+    <div class="metric-item">
+      <span class="metric-label">Total</span>
+      <strong>{{ metrics.total }}</strong>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Open</span>
+      <strong>{{ metrics.open }}</strong>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">In Progress</span>
+      <strong>{{ metrics.in_progress }}</strong>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Resolved</span>
+      <strong>{{ metrics.resolved }}</strong>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Critical Suggested</span>
+      <strong>{{ metrics.critical }}</strong>
+    </div>
+  </section>
+
+  <section class="queue-preview admin-queue" aria-labelledby="admin-queue-title">
+    <div class="section-heading-row">
+      <div>
+        <p class="eyebrow">Submitted Tickets</p>
+        <h2 id="admin-queue-title">Queue overview</h2>
+      </div>
+      <span class="status-chip">Most common: {{ metrics.most_common_issue }}</span>
+    </div>
+
+    {% if tickets %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Requester</th>
+              <th>Issue</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Assignee</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticket in tickets %}
+              <tr>
+                <td>
+                  <a class="ticket-link" href="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">
+                    {{ ticket.ticket_number }}
+                  </a>
+                </td>
+                <td>{{ ticket.requester_name }}</td>
+                <td>{{ ticket.issue_type }}</td>
+                <td>
+                  <span class="priority-suggestion priority-{{ ticket.suggested_priority|lower }}">
+                    {{ ticket.suggested_priority }}
+                  </span>
+                </td>
+                <td>{{ ticket.status }}</td>
+                <td>{{ ticket.assigned_to or "Unassigned" }}</td>
+                <td>{{ ticket.created_at }}</td>
+                <td>
+                  <a class="table-action" href="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">View</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info">
+        No tickets have been submitted yet.
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

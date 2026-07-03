@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Home | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="workspace-intro">
+    <p class="eyebrow">Service Desk Console</p>
+    <h1>Support workspace for internal IT requests</h1>
+    <p>
+      Track employee technology issues from intake through resolution using a
+      simple Flask-based workflow.
+    </p>
+    <div class="action-row">
+      <a class="button button-primary" href="{{ url_for('submit_ticket') }}">Submit Ticket</a>
+      <a class="button button-secondary" href="{{ url_for('employee_portal') }}">Check My Tickets</a>
+      <a class="button button-secondary" href="{{ url_for('admin_dashboard') }}">Open Admin Console</a>
+    </div>
+  </section>
+
+  <section class="role-map" aria-label="Employee and admin paths">
+    <div class="role-column">
+      <p class="section-kicker">Employee Path</p>
+      <h2>Request support</h2>
+      <ol class="path-list">
+        <li>Submit a new IT ticket</li>
+        <li>Check status on open requests</li>
+        <li>Track submitted ticket details</li>
+      </ol>
+      <div class="inline-actions">
+        <a href="{{ url_for('submit_ticket') }}">Create ticket</a>
+        <a href="{{ url_for('employee_portal') }}">View my tickets</a>
+      </div>
+    </div>
+
+    <div class="role-divider" aria-hidden="true"></div>
+
+    <div class="role-column">
+      <p class="section-kicker">Admin Path</p>
+      <h2>Run the queue</h2>
+      <ol class="path-list">
+        <li>Review incoming tickets</li>
+        <li>Open ticket detail views</li>
+        <li>Monitor queue metrics</li>
+      </ol>
+      <div class="inline-actions">
+        <a href="{{ url_for('admin_dashboard') }}">Open admin console</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="workflow-section" aria-labelledby="workflow-title">
+    <p class="eyebrow">System Workflow</p>
+    <h2 id="workflow-title">How tickets will move through the system</h2>
+    <div class="workflow-list">
+      <div class="workflow-step">
+        <span class="step-number">01</span>
+        <div>
+          <h3>Employee intake</h3>
+          <p>Requester submits contact details, issue type, priority, and description.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <span class="step-number">02</span>
+        <div>
+          <h3>Admin triage</h3>
+          <p>IT reviews the request, checks urgency, and decides who should own it.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <span class="step-number">03</span>
+        <div>
+          <h3>Assignment and updates</h3>
+          <p>Ticket owner updates status, adds notes, and asks for more detail if needed.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <span class="step-number">04</span>
+        <div>
+          <h3>Resolution tracking</h3>
+          <p>Resolved tickets keep timing data for average resolution analytics.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="queue-preview" aria-labelledby="queue-preview-title">
+    <div class="section-heading-row">
+      <div>
+        <p class="eyebrow">Queue Snapshot</p>
+        <h2 id="queue-preview-title">Current admin table shape</h2>
+      </div>
+      <span class="status-chip">Live Pattern</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Requester</th>
+            <th>Issue</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>IT-2026-0001</td>
+            <td>Employee</td>
+            <td>Network</td>
+            <td>High</td>
+            <td>Open</td>
+            <td>Unassigned</td>
+          </tr>
+          <tr>
+            <td>IT-2026-0002</td>
+            <td>Employee</td>
+            <td>Email</td>
+            <td>Medium</td>
+            <td>In Progress</td>
+            <td>IT Staff</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="build-panel" aria-labelledby="current-progress">
+    <div>
+      <p class="eyebrow">Current Build Stage</p>
+      <h2 id="current-progress">Ticket workflow started</h2>
+      <p>
+        Ticket submission, SQLite storage, employee lookup, and the read-only
+        admin queue are connected. Admin editing will come next.
+      </p>
+    </div>
+    <span class="status-chip">Phase 6</span>
+  </section>
+{% endblock %}

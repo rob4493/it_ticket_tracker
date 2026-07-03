@@ -1,0 +1,58 @@
+IT HELP DESK TICKET TRACKER - BUILD PATH
+
+Build rule:
+Move in small phases. Finish, test, and document each phase before starting the next one.
+
+Current stack:
+Python, Flask, SQLite, HTML, CSS, and light JavaScript only when useful.
+
+Current app status:
+- Flask app is running with active routes for home, ticket submission, employee lookup, admin queue, admin ticket detail, and health check.
+- SQLite stores submitted tickets.
+- Ticket numbers are generated automatically.
+- Employees can submit tickets and look up tickets by ticket number, email, or both.
+- Admins can view tickets in a queue, open ticket details, and review basic metrics.
+- Smart priority suggestion is rule-based and currently used as a triage aid.
+
+Completed phases:
+1. Project foundation
+2. Base visual direction
+3. Ticket submission form
+4. SQLite database setup
+5. Ticket confirmation page
+6. Employee ticket lookup
+7. Read-only admin console
+
+Next recommended phase:
+Admin ticket editing.
+
+Admin ticket editing should start small:
+1. Add status dropdown on the admin ticket detail page.
+2. Allow status changes: Open, In Progress, Resolved.
+3. Save updated_at when a ticket changes.
+4. Save resolved_at when a ticket becomes Resolved.
+5. Keep the interface simple before adding more editable fields.
+
+Planned admin improvements:
+- Manual priority override when IT decides priority should be raised or lowered.
+- Manual issue type correction when the employee selected the wrong category.
+- Ticket assignment and reassignment to IT employees.
+- Internal/private notes for IT workers.
+- Employee-visible conversation updates.
+- Search and filter tools.
+- Critical ticket email notification when rule-based detection marks a ticket Critical.
+
+Planned employee improvements:
+- Employee-visible ticket conversation.
+- Safe IT responses, such as password reset instructions or follow-up questions.
+- Simulated employee directory lookup by email or employee ID to auto-fill department.
+
+Planned analytics:
+- Average resolution time.
+- Tickets by assignee.
+- Tickets by issue type.
+- Critical ticket count.
+- Open ticket count by status and owner.
+
+Documentation rule:
+When a feature moves from planned to complete, update README.md and this build_path.txt file in the same cleanup pass.

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Ticket Submitted | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="page-section form-page">
+    <p class="eyebrow">Submission Received</p>
+    <h1>Ticket Submitted</h1>
+    <p>
+      Your ticket has been saved and is currently open for IT review.
+    </p>
+
+    <div class="submission-summary" aria-label="Submitted ticket summary">
+      <dl>
+        <div>
+          <dt>Ticket Number</dt>
+          <dd>{{ ticket.ticket_number }}</dd>
+        </div>
+        <div>
+          <dt>Requester</dt>
+          <dd>{{ ticket.requester_name }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ ticket.requester_email }}</dd>
+        </div>
+        <div>
+          <dt>Employee ID</dt>
+          <dd>{{ ticket.requester_employee_id or "Not provided" }}</dd>
+        </div>
+        <div>
+          <dt>Department</dt>
+          <dd>{{ ticket.department }}</dd>
+        </div>
+        <div>
+          <dt>Issue Type</dt>
+          <dd>{{ ticket.issue_type }}</dd>
+        </div>
+        <div>
+          <dt>Priority</dt>
+          <dd>{{ ticket.user_selected_priority }}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{{ ticket.status }}</dd>
+        </div>
+      </dl>
+      <div class="summary-description">
+        <h2>Description</h2>
+        <p>{{ ticket.description }}</p>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      Keep your ticket number for future status checks.
+    </div>
+
+    {% if show_employee_urgent_notice %}
+      <div class="alert alert-suggestion">
+        <strong>Urgent review notice:</strong>
+        This request may require urgent IT review based on the details provided.
+        The IT team will review it as soon as possible.
+      </div>
+    {% endif %}
+
+    <div class="form-actions">
+      <a class="button button-primary" href="{{ url_for('submit_ticket') }}">Submit Another Ticket</a>
+      <a class="button button-secondary" href="{{ url_for('employee_portal') }}">Employee Portal</a>
+    </div>
+  </section>
+{% endblock %}

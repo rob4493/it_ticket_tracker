@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}IT Help Desk Ticket Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Service desk navigation">
+        <a class="brand" href="{{ url_for('home') }}">
+          <span class="brand-mark">SD</span>
+          <span>
+            <span class="brand-title">Service Desk</span>
+            <span class="brand-subtitle">Ticket Console</span>
+          </span>
+        </a>
+
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="{{ url_for('home') }}">Workspace</a>
+
+          <span class="nav-section-label">Employee</span>
+          <a href="{{ url_for('submit_ticket') }}">Submit Ticket</a>
+          <a href="{{ url_for('employee_portal') }}">My Tickets</a>
+
+          <span class="nav-section-label">Admin</span>
+          <a href="{{ url_for('admin_dashboard') }}">Admin Console</a>
+        </nav>
+
+        <div class="sidebar-note">
+          <span class="note-label">Build Stage</span>
+          <span class="note-value">Admin Queue</span>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="workspace-header">
+          <div>
+            <p class="workspace-label">IT Operations Workspace</p>
+            <p class="workspace-title">Help Desk Ticket Tracker</p>
+          </div>
+          <a class="header-action" href="{{ url_for('health_check') }}">System Check</a>
+        </header>
+
+        <main class="page-content">
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
