@@ -71,7 +71,9 @@
                     <p class="ticket-number">{{ ticket.ticket_number }}</p>
                     <h3>{{ ticket.issue_type }}</h3>
                   </div>
-                  <span class="status-chip">{{ ticket.status }}</span>
+                  <span class="ticket-status status-{{ ticket.status|lower|replace(' ', '-') }}">
+                    {{ ticket.status }}
+                  </span>
                 </div>
 
                 <dl class="ticket-meta">
@@ -85,11 +87,11 @@
                   </div>
                   <div>
                     <dt>Submitted</dt>
-                    <dd>{{ ticket.created_at }}</dd>
+                    <dd>{{ ticket.created_at|short_datetime }}</dd>
                   </div>
                   <div>
                     <dt>Updated</dt>
-                    <dd>{{ ticket.updated_at }}</dd>
+                    <dd>{{ ticket.updated_at|short_datetime }}</dd>
                   </div>
                 </dl>
 

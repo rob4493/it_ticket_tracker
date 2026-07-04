@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Flask, render_template, request
 
 from database import (
@@ -7,11 +9,23 @@ from database import (
     get_all_tickets,
     get_ticket_by_id,
     init_db,
+    update_ticket_admin_fields,
 )
 
 
 app = Flask(__name__)
 init_db()
+
+
+@app.template_filter("short_datetime")
+def short_datetime(value):
+    if not value:
+        return "Not set"
+
+    try:
+        return datetime.fromisoformat(value).strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return value
 
 
 @app.route("/")
@@ -32,6 +46,9 @@ ISSUE_TYPES = [
 
 PRIORITIES = ["Low", "Medium", "High", "Critical"]
 PRIORITY_RANK = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4}
+TICKET_STATUSES = ["Open", "In Progress", "Resolved"]
+ADMIN_SORT_OPTIONS = {"ticket", "requester", "issue", "priority", "status", "assignee", "created"}
+ADMIN_SORT_DIRECTIONS = {"asc", "desc"}
 
 SECURITY_CRITICAL_TERMS = [
     "phishing",
@@ -225,23 +242,91 @@ def employee_portal():
 
 @app.route("/admin")
 def admin_dashboard():
-    tickets = get_all_tickets()
+    sort_by = request.args.get("sort", "status").strip().lower()
+    sort_direction = request.args.get("direction", "asc").strip().lower()
+
+    if sort_by not in ADMIN_SORT_OPTIONS:
+        sort_by = "status"
+
+    if sort_direction not in ADMIN_SORT_DIRECTIONS:
+        sort_direction = "asc"
+
+    tickets = get_all_tickets(sort_by=sort_by, sort_direction=sort_direction)
     metrics = get_admin_metrics()
     return render_template(
         "admin_dashboard.html",
         metrics=metrics,
         tickets=tickets,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
     )
 
 
-@app.route("/admin/ticket/<int:ticket_id>")
+@app.route("/admin/ticket/<int:ticket_id>", methods=["GET", "POST"])
 def admin_ticket_detail(ticket_id):
     ticket = get_ticket_by_id(ticket_id)
     if ticket is None:
-        return render_template("ticket_detail.html", ticket=None), 404
+        return render_template(
+            "ticket_detail.html",
+            ticket=None,
+            statuses=TICKET_STATUSES,
+            errors=[],
+            success_message="",
+        ), 404
 
-    return render_template("ticket_detail.html", ticket=ticket)
+    errors = []
+    success_message = ""
 
+    if request.method == "POST":
+        admin_update = {
+            "status": request.form.get("status", "").strip(),
+            "issue_type": request.form.get("issue_type", "").strip(),
+            "final_priority": request.form.get("final_priority", "").strip(),
+            "assigned_to": request.form.get("assigned_to", "").strip(),
+        }
+
+        errors = validate_admin_ticket_update(admin_update)
+
+        if not errors:
+            if admin_update_matches_ticket(admin_update, ticket):
+                success_message = "No admin fields changed."
+            else:
+                ticket = update_ticket_admin_fields(ticket_id, admin_update)
+                success_message = "Admin ticket fields updated."
+
+    return render_template(
+        "ticket_detail.html",
+        ticket=ticket,
+        statuses=TICKET_STATUSES,
+        issue_types=ISSUE_TYPES,
+        priorities=PRIORITIES,
+        errors=errors,
+        success_message=success_message,
+    )
+
+
+def validate_admin_ticket_update(admin_update):
+    errors = []
+
+    if admin_update["status"] not in TICKET_STATUSES:
+        errors.append("Select a valid ticket status.")
+
+    if admin_update["issue_type"] not in ISSUE_TYPES:
+        errors.append("Select a valid issue type.")
+
+    if admin_update["final_priority"] not in PRIORITIES:
+        errors.append("Select a valid priority.")
+
+    return errors
+
+
+def admin_update_matches_ticket(admin_update, ticket):
+    return (
+        admin_update["status"] == ticket["status"]
+        and admin_update["issue_type"] == ticket["issue_type"]
+        and admin_update["final_priority"] == ticket["final_priority"]
+        and admin_update["assigned_to"] == (ticket["assigned_to"] or "")
+    )
 
 @app.route("/health")
 def health_check():

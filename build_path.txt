@@ -11,8 +11,10 @@ Current app status:
 - SQLite stores submitted tickets.
 - Ticket numbers are generated automatically.
 - Employees can submit tickets and look up tickets by ticket number, email, or both.
-- Admins can view tickets in a queue, open ticket details, and review basic metrics.
+- Admins can view tickets in a queue, open ticket details, update triage fields, and review basic metrics.
 - Smart priority suggestion is rule-based and currently used as a triage aid.
+- Critical smart-suggested tickets are visually marked in the admin queue.
+- Visible timestamps are shortened to date plus hour and minute.
 
 Completed phases:
 1. Project foundation
@@ -21,22 +23,38 @@ Completed phases:
 4. SQLite database setup
 5. Ticket confirmation page
 6. Employee ticket lookup
-7. Read-only admin console
+7. Admin console
+8. Admin status editing
+9. Admin assignee, issue type, and priority editing
+10. Admin queue sorting
+11. Admin queue visual cleanup
 
 Next recommended phase:
-Admin ticket editing.
+Internal IT notes.
 
-Admin ticket editing should start small:
-1. Add status dropdown on the admin ticket detail page.
-2. Allow status changes: Open, In Progress, Resolved.
-3. Save updated_at when a ticket changes.
-4. Save resolved_at when a ticket becomes Resolved.
-5. Keep the interface simple before adding more editable fields.
+Admin status editing is complete:
+1. Add status dropdown on the admin ticket detail page. DONE
+2. Allow status changes: Open, In Progress, Resolved. DONE
+3. Save updated_at when a ticket changes. DONE
+4. Save resolved_at when a ticket becomes Resolved. DONE
+5. Keep the interface simple before adding more editable fields. DONE
+
+Additional admin editing is complete:
+1. Add manual priority override. DONE
+2. Add manual issue type correction. DONE
+3. Add ticket assignment or reassignment. DONE
+4. Add sorting by ticket number, requester, issue, priority, status, assignee, and created date. DONE
+5. Add visual critical smart-suggestion indicators in the queue. DONE
+6. Condense admin ticket detail into a ticket/details area plus side control panel. DONE
+7. Shorten displayed timestamps to remove seconds. DONE
+
+Next admin editing step:
+1. Add internal/private IT notes.
 
 Planned admin improvements:
-- Manual priority override when IT decides priority should be raised or lowered.
-- Manual issue type correction when the employee selected the wrong category.
-- Ticket assignment and reassignment to IT employees.
+- Manual priority override when IT decides priority should be raised or lowered. DONE
+- Manual issue type correction when the employee selected the wrong category. DONE
+- Ticket assignment and reassignment to IT employees. DONE
 - Internal/private notes for IT workers.
 - Employee-visible conversation updates.
 - Search and filter tools.

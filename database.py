@@ -77,20 +77,92 @@ def get_ticket_by_id(ticket_id):
         ).fetchone()
 
 
-def get_all_tickets():
+def update_ticket_admin_fields(ticket_id, admin_update):
+    current_ticket = get_ticket_by_id(ticket_id)
+    if current_ticket is None:
+        return current_ticket
+
+    has_changes = (
+        current_ticket["status"] != admin_update["status"]
+        or current_ticket["issue_type"] != admin_update["issue_type"]
+        or current_ticket["final_priority"] != admin_update["final_priority"]
+        or (current_ticket["assigned_to"] or "") != admin_update["assigned_to"]
+    )
+
+    if not has_changes:
+        return current_ticket
+
+    timestamp = datetime.now().isoformat(timespec="seconds")
+    resolved_at = current_ticket["resolved_at"]
+
+    if admin_update["status"] == "Resolved" and resolved_at is None:
+        resolved_at = timestamp
+    elif admin_update["status"] != "Resolved":
+        resolved_at = None
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE tickets
+            SET status = ?,
+                issue_type = ?,
+                final_priority = ?,
+                assigned_to = ?,
+                updated_at = ?,
+                resolved_at = ?
+            WHERE id = ?
+            """,
+            (
+                admin_update["status"],
+                admin_update["issue_type"],
+                admin_update["final_priority"],
+                admin_update["assigned_to"] or None,
+                timestamp,
+                resolved_at,
+                ticket_id,
+            ),
+        )
+        connection.commit()
+
+    return get_ticket_by_id(ticket_id)
+
+
+SORT_OPTIONS = {
+    "ticket": "ticket_number",
+    "requester": "LOWER(requester_name)",
+    "issue": "LOWER(issue_type)",
+    "priority": """
+        CASE final_priority
+          WHEN 'Critical' THEN 1
+          WHEN 'High' THEN 2
+          WHEN 'Medium' THEN 3
+          WHEN 'Low' THEN 4
+          ELSE 5
+        END
+    """,
+    "status": """
+        CASE status
+          WHEN 'Open' THEN 1
+          WHEN 'In Progress' THEN 2
+          WHEN 'Resolved' THEN 3
+          ELSE 4
+        END
+    """,
+    "assignee": "LOWER(COALESCE(assigned_to, 'Unassigned'))",
+    "created": "created_at",
+}
+
+
+def get_all_tickets(sort_by="status", sort_direction="asc"):
+    sort_expression = SORT_OPTIONS.get(sort_by, SORT_OPTIONS["status"])
+    direction = "DESC" if sort_direction == "desc" else "ASC"
+
     with get_connection() as connection:
         return connection.execute(
-            """
+            f"""
             SELECT *
             FROM tickets
-            ORDER BY
-              CASE status
-                WHEN 'Open' THEN 1
-                WHEN 'In Progress' THEN 2
-                WHEN 'Resolved' THEN 3
-                ELSE 4
-              END,
-              created_at DESC
+            ORDER BY {sort_expression} {direction}, created_at DESC
             """
         ).fetchall()
 

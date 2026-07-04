@@ -47,36 +47,55 @@
     {% if tickets %}
       <div class="table-wrap">
         <table>
+          {% macro sort_heading(label, key) -%}
+            {% set next_direction = 'desc' if sort_by == key and sort_direction == 'asc' else 'asc' %}
+            <a class="sort-link {% if sort_by == key %}sort-active{% endif %}" href="{{ url_for('admin_dashboard', sort=key, direction=next_direction) }}">
+              {{ label }}
+              {% if sort_by == key %}
+                <span aria-hidden="true">{{ "▲" if sort_direction == "asc" else "▼" }}</span>
+              {% endif %}
+            </a>
+          {%- endmacro %}
+
           <thead>
             <tr>
-              <th>Ticket</th>
-              <th>Requester</th>
-              <th>Issue</th>
-              <th>Priority</th>
-              <th>Status</th>
-              <th>Assignee</th>
-              <th>Created</th>
+              <th>{{ sort_heading("Ticket", "ticket") }}</th>
+              <th>{{ sort_heading("Requester", "requester") }}</th>
+              <th>{{ sort_heading("Issue", "issue") }}</th>
+              <th>{{ sort_heading("Priority", "priority") }}</th>
+              <th>{{ sort_heading("Status", "status") }}</th>
+              <th>{{ sort_heading("Assignee", "assignee") }}</th>
+              <th>{{ sort_heading("Created", "created") }}</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {% for ticket in tickets %}
-              <tr>
+              <tr class="{% if ticket.suggested_priority == 'Critical' %}critical-suggested-row{% endif %}">
                 <td>
-                  <a class="ticket-link" href="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">
+                  <a class="ticket-link {% if ticket.suggested_priority == 'Critical' %}ticket-link-critical{% endif %}" href="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">
                     {{ ticket.ticket_number }}
                   </a>
                 </td>
                 <td>{{ ticket.requester_name }}</td>
                 <td>{{ ticket.issue_type }}</td>
                 <td>
-                  <span class="priority-suggestion priority-{{ ticket.suggested_priority|lower }}">
-                    {{ ticket.suggested_priority }}
+                  <span class="priority-stack">
+                    <span class="priority-suggestion priority-{{ ticket.final_priority|lower }}">
+                      {{ ticket.final_priority }}
+                    </span>
+                    {% if ticket.suggested_priority == "Critical" %}
+                      <span class="smart-critical-tag">Smart Critical</span>
+                    {% endif %}
                   </span>
                 </td>
-                <td>{{ ticket.status }}</td>
+                <td>
+                  <span class="ticket-status status-{{ ticket.status|lower|replace(' ', '-') }}">
+                    {{ ticket.status }}
+                  </span>
+                </td>
                 <td>{{ ticket.assigned_to or "Unassigned" }}</td>
-                <td>{{ ticket.created_at }}</td>
+                <td>{{ ticket.created_at|short_datetime }}</td>
                 <td>
                   <a class="table-action" href="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">View</a>
                 </td>

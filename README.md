@@ -29,9 +29,9 @@ Right now, the app includes:
 - A ticket submission form that validates required fields, saves to SQLite, and shows a confirmation page
 - A rule-based smart priority suggestion on submitted tickets
 - An employee ticket lookup page that supports ticket number, email address, or both
-- An admin console that displays submitted tickets, queue metrics, clickable ticket numbers, and read-only ticket detail pages
+- An admin console that displays submitted tickets, queue metrics, clickable ticket numbers, ticket detail pages, and admin editing
 
-Full admin ticket editing, search, filtering, advanced analytics, employee directory lookup, and email notifications are planned for later phases.
+Additional search, filtering, advanced analytics, employee directory lookup, and email notifications are planned for later phases.
 
 ## Project Goal
 
@@ -58,7 +58,10 @@ The project currently includes:
 - Ticket statuses stored in the database: Open, In Progress, and Resolved
 - Employee ticket lookup by ticket number, email address, or both
 - Admin dashboard with ticket table and queue metrics
-- Read-only admin ticket detail page
+- Admin ticket detail page with status, assignee, issue type, and priority editing
+- Admin queue sorting by ticket number, requester, issue, priority, status, assignee, and created date
+- Critical smart-suggestion indicators in the admin queue
+- Shortened visible timestamps without seconds
 - Rule-based smart priority suggestion
 - Basic analytics for ticket counts and most common issue type
 
@@ -66,10 +69,6 @@ The project currently includes:
 
 The project still needs:
 
-- Admin status update workflow
-- Admin priority override
-- Admin issue type and field correction
-- Ticket assignment and reassignment
 - Internal IT notes
 - Employee-visible ticket conversation
 - Critical ticket email notification for rule-detected Critical tickets
@@ -114,7 +113,7 @@ Current templates:
 - `submit_ticket.html`: Ticket submission form.
 - `ticket_success.html`: Confirmation page after a ticket is submitted.
 - `admin_dashboard.html`: Admin page for viewing submitted tickets and queue metrics.
-- `ticket_detail.html`: Admin page for viewing one ticket. Status updates will be added later.
+- `ticket_detail.html`: Admin page for viewing one ticket and updating admin triage fields.
 - `admin_login.html`: Future admin login page.
 
 The home, employee portal, submit ticket, ticket success, admin dashboard, and ticket detail templates are connected to active routes right now. Admin login will be connected when authentication is built.
@@ -125,7 +124,7 @@ Current active routes:
 - `/employee`: Employee ticket lookup page.
 - `/submit`: Employee ticket submission form.
 - `/admin`: Admin console for reviewing submitted tickets.
-- `/admin/ticket/<id>`: Read-only admin ticket detail page.
+- `/admin/ticket/<id>`: Admin ticket detail page with status, assignee, issue type, and priority editing.
 - `/health`: Basic health check route.
 
 ## Current Admin Console Behavior
@@ -137,11 +136,13 @@ Current admin fields shown:
 - Ticket number
 - Requester name
 - Issue type
-- Smart suggested priority
+- Admin priority
 - Status
 - Assignee
-- Created timestamp
+- Created date/time, displayed without seconds
 - View link
+
+Visible timestamps are shortened to date plus hour and minute, while the database keeps the full stored timestamp.
 
 The admin console also shows basic queue metrics:
 
@@ -154,7 +155,11 @@ The admin console also shows basic queue metrics:
 
 The ticket number and View action both open the admin ticket detail page.
 
-The ticket detail page currently shows read-only information, including the full smart-priority triage reason. Status updates, assignments, issue type correction, priority correction, and internal admin notes are planned for later phases.
+The queue table supports sorting by ticket number, requester, issue, priority, status, assignee, and created date. Clicking a column header toggles the sort direction.
+
+Rows with a Critical smart suggestion receive a subtle red highlight, a red ticket number, and a `Smart Critical` tag beside the current IT priority.
+
+The ticket detail page uses a condensed two-column layout with submitted employee details on the left and admin controls in a right-side panel. Admins can update status, assignee, issue type, and IT priority. Internal admin notes are planned for a later phase.
 
 ## Planned Admin Workflow Enhancements
 
@@ -162,8 +167,8 @@ Future admin ticket editing should support:
 
 - Manual priority changes when IT determines the employee-selected or smart-suggested priority should be raised or lowered.
 - Manual issue type changes when the employee chooses the wrong category.
-- Status changes from Open to In Progress to Resolved.
-- Assignment and reassignment to IT staff.
+- Status changes from Open to In Progress to Resolved. DONE
+- Assignment and reassignment to IT staff. DONE
 - Internal/private notes for IT workers only.
 - Employee-visible ticket conversation updates for follow-up questions, reset instructions, or safe resolution steps.
 - Critical ticket email notification to admins when the rule-based detection marks a ticket Critical.
@@ -211,7 +216,7 @@ The employee-facing results show safe ticket details only:
 - Status
 - Priority selected by the employee
 - Department
-- Submitted and updated timestamps
+- Submitted and updated timestamps, displayed without seconds
 - Description
 
 Internal admin notes and full smart-priority triage details are not shown to employees.
@@ -289,9 +294,9 @@ You should see:
 
 ## Development Notes
 
-This project is being built one step at a time. The foundation, ticket submission, database storage, employee lookup, and read-only admin console are now in place.
+This project is being built one step at a time. The foundation, ticket submission, database storage, employee lookup, admin console, and admin triage editing are now in place.
 
-The next logical step is admin ticket editing, starting with status changes and then expanding into priority correction, assignment, issue type correction, and notes.
+The next logical admin editing step is internal/private IT notes.
 
 ## Visual Direction
 
@@ -307,7 +312,9 @@ The current visual style uses a dark service desk console theme:
 - Violet build/status accent for non-ticket states
 - Light text with muted gray-blue supporting text
 - Modern dashboard font stack: Inter, Segoe UI, system UI, sans-serif
+- Condensed admin ticket detail layout with a right-side control panel
+- Critical smart-suggestion rows lightly highlighted in the admin queue
 
 This direction is intended to feel like a practical internal IT operations console instead of a public marketing website or generic SaaS landing page.
 
-Green is intentionally reserved for future Resolved status indicators so the color system stays clear.
+Status badges use green for Open, amber for In Progress, and dark gray for Resolved or Closed states.
