@@ -21,17 +21,17 @@ Right now, the app includes:
 - A home page template
 - A shared base layout template
 - Templates for the main employee and admin pages
-- Active routes for the home page, employee portal, submit ticket, admin dashboard, admin ticket detail, and health check
+- Active routes for the home page, employee portal, submit ticket, admin dashboard, admin ticket detail, ticket conversation replies, and health check
 - A custom dark-theme CSS file
 - A `requirements.txt` file listing Flask as the first dependency
 - A `.gitignore` file for local Python environment files
 - A `/health` route that can be used to confirm the app is running
 - A ticket submission form that validates required fields, saves to SQLite, and shows a confirmation page
 - A rule-based smart priority suggestion on submitted tickets
-- An employee ticket lookup page that supports ticket number, email address, or both
-- An admin console that displays submitted tickets, queue metrics, clickable ticket numbers, ticket detail pages, and admin editing
+- An employee ticket lookup page that supports ticket number, email address, or both, with compact email-only results
+- An admin console that displays submitted tickets, queue metrics, clickable ticket numbers, ticket detail pages, admin editing, private internal IT notes, and employee-visible replies
 
-Additional search, filtering, advanced analytics, employee directory lookup, and email notifications are planned for later phases.
+Additional advanced analytics, employee directory lookup, and email notifications are planned for later phases.
 
 ## Project Goal
 
@@ -56,12 +56,15 @@ The project currently includes:
 - Auto-generated ticket numbers
 - Ticket confirmation page
 - Ticket statuses stored in the database: Open, In Progress, and Resolved
-- Employee ticket lookup by ticket number, email address, or both
+- Employee ticket lookup by ticket number, email address, or both, with compact email-only results
 - Admin dashboard with ticket table and queue metrics
 - Admin ticket detail page with status, assignee, issue type, and priority editing
 - Admin queue sorting by ticket number, requester, issue, priority, status, assignee, and created date
+- Admin queue search and filters by keyword, status, priority, issue type, and assignee
 - Critical smart-suggestion indicators in the admin queue
 - Shortened visible timestamps without seconds
+- Internal/private IT notes on admin ticket detail pages
+- Employee-visible ticket conversation between IT and the requester
 - Rule-based smart priority suggestion
 - Basic analytics for ticket counts and most common issue type
 
@@ -69,11 +72,9 @@ The project currently includes:
 
 The project still needs:
 
-- Internal IT notes
-- Employee-visible ticket conversation
+- Live admin search results while typing
 - Critical ticket email notification for rule-detected Critical tickets
 - Employee directory lookup to auto-fill department from employee email or ID
-- Search and filter tools
 - Advanced analytics, such as average resolution time and tickets by assignee
 
 ## Current File Structure
@@ -109,11 +110,11 @@ Current templates:
 
 - `base.html`: Shared layout used by the other pages.
 - `home.html`: Current home page.
-- `employee_portal.html`: Employee area for checking ticket status. Follow-up updates will be added later.
+- `employee_portal.html`: Employee area for checking ticket status, viewing IT replies, and adding requester replies.
 - `submit_ticket.html`: Ticket submission form.
 - `ticket_success.html`: Confirmation page after a ticket is submitted.
 - `admin_dashboard.html`: Admin page for viewing submitted tickets and queue metrics.
-- `ticket_detail.html`: Admin page for viewing one ticket and updating admin triage fields.
+- `ticket_detail.html`: Admin page for viewing one ticket, updating admin triage fields, adding employee-visible replies, and adding private internal IT notes.
 - `admin_login.html`: Future admin login page.
 
 The home, employee portal, submit ticket, ticket success, admin dashboard, and ticket detail templates are connected to active routes right now. Admin login will be connected when authentication is built.
@@ -122,9 +123,14 @@ Current active routes:
 
 - `/`: Home page.
 - `/employee`: Employee ticket lookup page.
+- `/employee/ticket/<id>`: Employee-safe full ticket detail after email verification.
 - `/submit`: Employee ticket submission form.
 - `/admin`: Admin console for reviewing submitted tickets.
-- `/admin/ticket/<id>`: Admin ticket detail page with status, assignee, issue type, and priority editing.
+- `/admin/ticket/<id>`: Admin ticket detail page with status, assignee, issue type, priority editing, and private internal IT notes.
+- `/admin/ticket/<id>/edit`: Admin-only POST route for status, assignee, issue type, and priority updates.
+- `/admin/ticket/<id>/note`: Admin-only POST route for private internal IT notes.
+- `/admin/ticket/<id>/reply`: Admin-only POST route for employee-visible replies.
+- `/employee/ticket/<id>/reply`: Employee POST route for requester replies after email verification.
 - `/health`: Basic health check route.
 
 ## Current Admin Console Behavior
@@ -157,20 +163,27 @@ The ticket number and View action both open the admin ticket detail page.
 
 The queue table supports sorting by ticket number, requester, issue, priority, status, assignee, and created date. Clicking a column header toggles the sort direction.
 
+The admin queue also supports searching by ticket number, requester, email, issue type, description keyword, or assignee. Admins can filter by status, priority, issue type, and assignee. The Critical priority filter includes both IT Priority Critical tickets and Smart Critical suggestions. Sorting preserves the current search and filter choices.
+
+Future live-search enhancement: the admin search box can update results as the admin types, after a short delay. The current Apply Filters button should stay as the reliable fallback, with live search added as a light JavaScript enhancement rather than replacing the form workflow.
+
 Rows with a Critical smart suggestion receive a subtle red highlight, a red ticket number, and a `Smart Critical` tag beside the current IT priority.
 
-The ticket detail page uses a condensed two-column layout with submitted employee details on the left and admin controls in a right-side panel. Admins can update status, assignee, issue type, and IT priority. Internal admin notes are planned for a later phase.
+The ticket detail page uses a condensed two-column layout with submitted employee details, employee-visible conversation, and internal notes on the left, plus admin controls in a right-side panel. Admins can update status, assignee, issue type, IT priority, add visible replies for the requester, and add private notes for IT handoffs or troubleshooting context. Internal notes and employee-visible replies submit through their own routes so they do not validate or change admin triage fields.
 
-## Planned Admin Workflow Enhancements
+## Admin Workflow Notes
 
-Future admin ticket editing should support:
+Current admin ticket editing supports:
 
 - Manual priority changes when IT determines the employee-selected or smart-suggested priority should be raised or lowered.
 - Manual issue type changes when the employee chooses the wrong category.
-- Status changes from Open to In Progress to Resolved. DONE
-- Assignment and reassignment to IT staff. DONE
+- Status changes from Open to In Progress to Resolved.
+- Assignment and reassignment to IT staff.
 - Internal/private notes for IT workers only.
 - Employee-visible ticket conversation updates for follow-up questions, reset instructions, or safe resolution steps.
+
+Future admin workflow improvements should support:
+
 - Critical ticket email notification to admins when the rule-based detection marks a ticket Critical.
 
 Critical email notifications should be based on detection only, not on an employee selecting Critical manually. This helps prevent priority abuse while still alerting IT when the description suggests a true urgent risk.
@@ -197,7 +210,7 @@ IT-2026-0001
 
 The year is based on the ticket creation date, and the final number is based on the database ID.
 
-Employee ticket lookup supports ticket number, email address, or both. A ticket number can find one specific ticket, while email can show tickets submitted by that requester. If both are provided, both values must match the saved ticket.
+Employee ticket lookup supports ticket number, email address, or both. A ticket number can find one specific ticket and show the full employee-safe details immediately. Email-only search can show a compact list of tickets submitted by that requester. If both are provided, both values must match the saved ticket.
 
 ## Current Employee Portal Behavior
 
@@ -207,7 +220,7 @@ The `/employee` page lets employees search for tickets using:
 - Email address only
 - Ticket number and email address together
 
-Ticket number search finds one specific ticket. Email search can return multiple tickets submitted by the same requester. When both are provided, both values must match the saved ticket.
+Ticket number search finds one specific ticket and shows the full ticket details immediately. Email-only search returns a compact list of matching tickets so employees can scan by issue, status, date, and description preview before opening the exact ticket. When both are provided, both values must match the saved ticket.
 
 The employee-facing results show safe ticket details only:
 
@@ -218,8 +231,11 @@ The employee-facing results show safe ticket details only:
 - Department
 - Submitted and updated timestamps, displayed without seconds
 - Description
+- Employee-visible conversation updates and replies
 
 Internal admin notes and full smart-priority triage details are not shown to employees.
+
+Employees can reply to a ticket conversation from the employee portal. The reply form asks for the requester email and checks that it matches the ticket before saving the message. This is a beginner-friendly stand-in for future login-based identity checks.
 
 The app also calculates a smart priority suggestion. This is currently rule-based, not connected to an AI API. It looks at the issue type and description for high-risk phrases, such as security incidents, suspicious links, unknown downloads, account compromise, or broader business-impact language.
 
@@ -294,9 +310,11 @@ You should see:
 
 ## Development Notes
 
-This project is being built one step at a time. The foundation, ticket submission, database storage, employee lookup, admin console, and admin triage editing are now in place.
+This project is being built one step at a time. The foundation, ticket submission, database storage, employee lookup, admin console, admin triage editing, internal IT notes, employee-visible ticket conversation, and admin queue filtering are now in place.
 
-The next logical admin editing step is internal/private IT notes.
+The next logical workflow step is either simulated employee directory lookup or expanded analytics.
+
+Live admin search is also planned as a future user-experience enhancement. The preferred approach is to keep the current Flask filter form working normally, then add JavaScript that waits briefly after typing before updating results.
 
 ## Visual Direction
 
@@ -314,6 +332,8 @@ The current visual style uses a dark service desk console theme:
 - Modern dashboard font stack: Inter, Segoe UI, system UI, sans-serif
 - Condensed admin ticket detail layout with a right-side control panel
 - Critical smart-suggestion rows lightly highlighted in the admin queue
+- Private internal notes displayed inside the admin ticket detail workflow
+- Employee-visible conversation displayed as a simple ticket thread
 
 This direction is intended to feel like a practical internal IT operations console instead of a public marketing website or generic SaaS landing page.
 

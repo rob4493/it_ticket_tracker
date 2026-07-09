@@ -66,6 +66,51 @@
             <p>{{ ticket.description }}</p>
           </div>
 
+          <section class="ticket-conversation" aria-labelledby="ticket-conversation-title">
+            <div class="detail-section-heading">
+              <p class="eyebrow">Employee Visible</p>
+              <h2 id="ticket-conversation-title">Ticket conversation</h2>
+            </div>
+
+            <form class="ticket-form conversation-form" method="post" action="{{ url_for('add_admin_reply', ticket_id=ticket.id) }}">
+              <div class="internal-note-grid">
+                <div class="form-field">
+                  <label for="reply_author">Reply From</label>
+                  <input
+                    id="reply_author"
+                    name="reply_author"
+                    type="text"
+                    value="{{ reply_author or 'IT Support' }}"
+                  >
+                </div>
+                <div class="form-field">
+                  <label for="admin_reply_message">Message to Employee</label>
+                  <textarea id="admin_reply_message" name="message" rows="4" placeholder="Add a visible update, follow-up question, or safe resolution step for the employee."></textarea>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Send Reply</button>
+              </div>
+            </form>
+
+            {% if public_updates %}
+              <div class="conversation-list">
+                {% for update in public_updates %}
+                  <article class="conversation-item">
+                    <div class="note-meta">
+                      <strong>{{ update.author_name }}</strong>
+                      <span>{{ update.created_at|short_datetime }}</span>
+                    </div>
+                    <p>{{ update.message }}</p>
+                  </article>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="empty-note">No employee-visible replies yet.</p>
+            {% endif %}
+          </section>
+
         </div>
 
         <aside class="admin-edit-panel" aria-label="Admin controls">
@@ -86,7 +131,7 @@
             </span>
           </div>
 
-          <form class="ticket-form admin-edit-form" method="post" action="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">
+          <form class="ticket-form admin-edit-form" method="post" action="{{ url_for('update_admin_ticket', ticket_id=ticket.id) }}">
             <div class="admin-control-grid">
               <div class="form-field">
                 <label for="status">Ticket Status</label>
@@ -135,6 +180,51 @@
               <a class="button button-secondary" href="{{ url_for('admin_dashboard') }}">Back</a>
             </div>
           </form>
+
+          <section class="internal-notes" aria-labelledby="internal-notes-title">
+            <div class="detail-section-heading">
+              <p class="eyebrow">Private IT</p>
+              <h2 id="internal-notes-title">Internal notes</h2>
+            </div>
+
+            <form class="ticket-form internal-note-form" method="post" action="{{ url_for('add_ticket_note', ticket_id=ticket.id) }}">
+              <div class="internal-note-grid">
+                <div class="form-field">
+                  <label for="author_name">IT Staff Name</label>
+                  <input
+                    id="author_name"
+                    name="author_name"
+                    type="text"
+                    value="{{ note_author or 'IT Admin' }}"
+                  >
+                </div>
+                <div class="form-field">
+                  <label for="message">Note</label>
+                  <textarea id="message" name="message" rows="4" placeholder="Add troubleshooting steps, handoff context, or private IT notes."></textarea>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Add Note</button>
+              </div>
+            </form>
+
+            {% if internal_notes %}
+              <div class="note-list">
+                {% for note in internal_notes %}
+                  <article class="note-item">
+                    <div class="note-meta">
+                      <strong>{{ note.author_name }}</strong>
+                      <span>{{ note.created_at|short_datetime }}</span>
+                    </div>
+                    <p>{{ note.message }}</p>
+                  </article>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="empty-note">No internal notes yet.</p>
+            {% endif %}
+          </section>
         </aside>
       </div>
     {% else %}

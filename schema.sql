@@ -17,3 +17,13 @@ CREATE TABLE IF NOT EXISTS tickets (
   updated_at TEXT NOT NULL,
   resolved_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS ticket_updates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticket_id INTEGER NOT NULL,
+  author_name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  is_internal INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (ticket_id) REFERENCES tickets (id)
+);

@@ -44,15 +44,87 @@
       <span class="status-chip">Most common: {{ metrics.most_common_issue }}</span>
     </div>
 
+    <form class="admin-filter-form" method="get" action="{{ url_for('admin_dashboard') }}">
+      <input type="hidden" name="sort" value="{{ sort_by }}">
+      <input type="hidden" name="direction" value="{{ sort_direction }}">
+
+      <div class="admin-filter-grid">
+        <div class="form-field admin-search-field">
+          <label for="search">Search</label>
+          <input
+            id="search"
+            name="search"
+            type="search"
+            placeholder="Ticket, requester, email, or keyword"
+            value="{{ filters.search }}"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="">All statuses</option>
+            {% for status in statuses %}
+              <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>
+                {{ status }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="priority">Priority</label>
+          <select id="priority" name="priority">
+            <option value="">All priorities</option>
+            {% for priority in priorities %}
+              <option value="{{ priority }}" {% if filters.priority == priority %}selected{% endif %}>
+                {{ priority }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="issue_type">Issue Type</label>
+          <select id="issue_type" name="issue_type">
+            <option value="">All issue types</option>
+            {% for issue_type in issue_types %}
+              <option value="{{ issue_type }}" {% if filters.issue_type == issue_type %}selected{% endif %}>
+                {{ issue_type }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="assignee">Assignee</label>
+          <select id="assignee" name="assignee">
+            <option value="">All assignees</option>
+            <option value="Unassigned" {% if filters.assignee == "Unassigned" %}selected{% endif %}>Unassigned</option>
+            {% for assignee in assignee_options %}
+              <option value="{{ assignee }}" {% if filters.assignee == assignee %}selected{% endif %}>
+                {{ assignee }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="button button-primary" type="submit">Apply Filters</button>
+        <a class="button button-secondary" href="{{ url_for('admin_dashboard') }}">Clear</a>
+      </div>
+    </form>
+
     {% if tickets %}
       <div class="table-wrap">
         <table>
           {% macro sort_heading(label, key) -%}
             {% set next_direction = 'desc' if sort_by == key and sort_direction == 'asc' else 'asc' %}
-            <a class="sort-link {% if sort_by == key %}sort-active{% endif %}" href="{{ url_for('admin_dashboard', sort=key, direction=next_direction) }}">
+            <a class="sort-link {% if sort_by == key %}sort-active{% endif %}" href="{{ url_for('admin_dashboard', sort=key, direction=next_direction, search=filters.search, status=filters.status, priority=filters.priority, issue_type=filters.issue_type, assignee=filters.assignee) }}">
               {{ label }}
               {% if sort_by == key %}
-                <span aria-hidden="true">{{ "▲" if sort_direction == "asc" else "▼" }}</span>
+                <span aria-hidden="true">{{ "^" if sort_direction == "asc" else "v" }}</span>
               {% endif %}
             </a>
           {%- endmacro %}
@@ -106,7 +178,7 @@
       </div>
     {% else %}
       <div class="alert alert-info">
-        No tickets have been submitted yet.
+        No tickets match the current search or filters.
       </div>
     {% endif %}
   </section>

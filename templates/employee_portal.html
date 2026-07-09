@@ -21,7 +21,13 @@
       </div>
     {% endif %}
 
-    <form class="ticket-form lookup-form" method="post" action="{{ url_for('employee_portal') }}">
+    {% if success_message %}
+      <div class="alert alert-info" role="status">
+        {{ success_message }}
+      </div>
+    {% endif %}
+
+    <form class="ticket-form lookup-form {% if lookup_attempted %}lookup-form-compact{% endif %}" method="post" action="{{ url_for('employee_portal') }}">
       <div class="form-grid">
         <div class="form-field">
           <label for="ticket_number">Ticket Number</label>
@@ -58,50 +64,126 @@
           <div>
             <p class="eyebrow">Lookup Results</p>
             <h2 id="lookup-results-title">Matching tickets</h2>
+            {% if display_mode == "list" and search.email %}
+              <p class="result-context">Tickets for {{ search.email }}</p>
+            {% elif search.ticket_number %}
+              <p class="result-context">Ticket {{ search.ticket_number|upper }}</p>
+            {% endif %}
           </div>
           <span class="status-chip">{{ tickets|length }} found</span>
         </div>
 
         {% if tickets %}
-          <div class="ticket-result-list">
-            {% for ticket in tickets %}
-              <article class="ticket-result">
-                <div class="ticket-result-header">
-                  <div>
-                    <p class="ticket-number">{{ ticket.ticket_number }}</p>
-                    <h3>{{ ticket.issue_type }}</h3>
+          {% if display_mode == "list" %}
+            <div class="ticket-summary-list">
+              {% for ticket in tickets %}
+                <article class="ticket-summary-item">
+                  <div class="ticket-summary-main">
+                    <div class="ticket-summary-title">
+                      <p class="ticket-number">{{ ticket.ticket_number }}</p>
+                      <h3>{{ ticket.issue_type }}</h3>
+                    </div>
+                    <p class="ticket-preview">{{ ticket.description }}</p>
                   </div>
-                  <span class="ticket-status status-{{ ticket.status|lower|replace(' ', '-') }}">
-                    {{ ticket.status }}
-                  </span>
-                </div>
 
-                <dl class="ticket-meta">
-                  <div>
-                    <dt>Priority</dt>
-                    <dd>{{ ticket.user_selected_priority }}</dd>
+                  <div class="ticket-summary-meta">
+                    <span class="ticket-status status-{{ ticket.status|lower|replace(' ', '-') }}">
+                      {{ ticket.status }}
+                    </span>
+                    <span class="ticket-summary-date">{{ ticket.created_at|short_datetime }}</span>
+                    <a class="table-action" href="{{ url_for('employee_ticket_detail', ticket_id=ticket.id, email=search.email) }}">View Ticket</a>
                   </div>
-                  <div>
-                    <dt>Department</dt>
-                    <dd>{{ ticket.department }}</dd>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="ticket-result-list">
+              {% for ticket in tickets %}
+                <article class="ticket-result">
+                  <div class="ticket-result-header">
+                    <div>
+                      <p class="ticket-number">{{ ticket.ticket_number }}</p>
+                      <h3>{{ ticket.issue_type }}</h3>
+                    </div>
+                    <span class="ticket-status status-{{ ticket.status|lower|replace(' ', '-') }}">
+                      {{ ticket.status }}
+                    </span>
                   </div>
-                  <div>
-                    <dt>Submitted</dt>
-                    <dd>{{ ticket.created_at|short_datetime }}</dd>
-                  </div>
-                  <div>
-                    <dt>Updated</dt>
-                    <dd>{{ ticket.updated_at|short_datetime }}</dd>
-                  </div>
-                </dl>
 
-                <div class="summary-description">
-                  <h4>Description</h4>
-                  <p>{{ ticket.description }}</p>
-                </div>
-              </article>
-            {% endfor %}
-          </div>
+                  <dl class="ticket-meta">
+                    <div>
+                      <dt>Priority</dt>
+                      <dd>{{ ticket.user_selected_priority }}</dd>
+                    </div>
+                    <div>
+                      <dt>Department</dt>
+                      <dd>{{ ticket.department }}</dd>
+                    </div>
+                    <div>
+                      <dt>Submitted</dt>
+                      <dd>{{ ticket.created_at|short_datetime }}</dd>
+                    </div>
+                    <div>
+                      <dt>Updated</dt>
+                      <dd>{{ ticket.updated_at|short_datetime }}</dd>
+                    </div>
+                  </dl>
+
+                  <div class="summary-description">
+                    <h4>Description</h4>
+                    <p>{{ ticket.description }}</p>
+                  </div>
+
+                  <section class="ticket-conversation" aria-labelledby="conversation-{{ ticket.id }}">
+                    <div class="detail-section-heading">
+                      <p class="eyebrow">Conversation</p>
+                      <h4 id="conversation-{{ ticket.id }}">Ticket updates</h4>
+                    </div>
+
+                    {% set public_updates = public_updates_by_ticket.get(ticket.id, []) %}
+                    {% if public_updates %}
+                      <div class="conversation-list">
+                        {% for update in public_updates %}
+                          <article class="conversation-item">
+                            <div class="note-meta">
+                              <strong>{{ update.author_name }}</strong>
+                              <span>{{ update.created_at|short_datetime }}</span>
+                            </div>
+                            <p>{{ update.message }}</p>
+                          </article>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <p class="empty-note">No conversation updates yet.</p>
+                    {% endif %}
+
+                    <form class="ticket-form employee-reply-form" method="post" action="{{ url_for('add_employee_reply', ticket_id=ticket.id) }}">
+                      <div class="employee-reply-grid">
+                        <div class="form-field">
+                          <label for="reply_email_{{ ticket.id }}">Your Email</label>
+                          <input
+                            id="reply_email_{{ ticket.id }}"
+                            name="reply_email"
+                            type="email"
+                            value="{{ search.email }}"
+                            placeholder="employee@company.com"
+                            required
+                          >
+                        </div>
+                        <div class="form-field">
+                          <label for="reply_message_{{ ticket.id }}">Reply</label>
+                          <textarea id="reply_message_{{ ticket.id }}" name="message" rows="3" placeholder="Add a follow-up or answer an IT question."></textarea>
+                        </div>
+                      </div>
+                      <div class="form-actions">
+                        <button class="button button-primary" type="submit">Add Reply</button>
+                      </div>
+                    </form>
+                  </section>
+                </article>
+              {% endfor %}
+            </div>
+          {% endif %}
         {% else %}
           <div class="alert alert-info">
             No matching tickets were found. Check the ticket number or email address and try again.

@@ -7,13 +7,18 @@ Current stack:
 Python, Flask, SQLite, HTML, CSS, and light JavaScript only when useful.
 
 Current app status:
-- Flask app is running with active routes for home, ticket submission, employee lookup, admin queue, admin ticket detail, and health check.
+- Flask app is running with active routes for home, ticket submission, employee lookup, admin queue, admin ticket detail, ticket conversation replies, and health check.
 - SQLite stores submitted tickets.
 - Ticket numbers are generated automatically.
 - Employees can submit tickets and look up tickets by ticket number, email, or both.
+- Employee ticket number lookup shows full details, while email-only lookup shows a compact ticket list.
 - Admins can view tickets in a queue, open ticket details, update triage fields, and review basic metrics.
+- Admins can search and filter the ticket queue by keyword, status, priority, issue type, and assignee.
+- Admins can add private internal IT notes to individual tickets.
+- Admins and employees can add employee-visible ticket conversation replies.
 - Smart priority suggestion is rule-based and currently used as a triage aid.
 - Critical smart-suggested tickets are visually marked in the admin queue.
+- The Critical priority filter includes both IT Critical and Smart Critical tickets.
 - Visible timestamps are shortened to date plus hour and minute.
 
 Completed phases:
@@ -28,9 +33,13 @@ Completed phases:
 9. Admin assignee, issue type, and priority editing
 10. Admin queue sorting
 11. Admin queue visual cleanup
+12. Internal IT notes
+13. Employee-visible ticket conversation
+14. Employee lookup result cleanup
+15. Admin search and filter tools
 
 Next recommended phase:
-Internal IT notes.
+Simulated employee directory lookup or expanded analytics.
 
 Admin status editing is complete:
 1. Add status dropdown on the admin ticket detail page. DONE
@@ -47,22 +56,31 @@ Additional admin editing is complete:
 5. Add visual critical smart-suggestion indicators in the queue. DONE
 6. Condense admin ticket detail into a ticket/details area plus side control panel. DONE
 7. Shorten displayed timestamps to remove seconds. DONE
+8. Add internal/private IT notes. DONE
+9. Add employee-visible conversation updates. DONE
+10. Add search and filter tools. DONE
 
 Next admin editing step:
-1. Add internal/private IT notes.
+1. Add critical ticket email notification or expanded analytics.
 
-Planned admin improvements:
-- Manual priority override when IT decides priority should be raised or lowered. DONE
-- Manual issue type correction when the employee selected the wrong category. DONE
-- Ticket assignment and reassignment to IT employees. DONE
+Completed admin improvements:
+- Manual priority override when IT decides priority should be raised or lowered.
+- Manual issue type correction when the employee selected the wrong category.
+- Ticket assignment and reassignment to IT employees.
 - Internal/private notes for IT workers.
 - Employee-visible conversation updates.
 - Search and filter tools.
+
+Planned admin improvements:
+- Live admin search results while typing, using a short delay and keeping Apply Filters as the fallback.
 - Critical ticket email notification when rule-based detection marks a ticket Critical.
 
-Planned employee improvements:
+Completed employee improvements:
 - Employee-visible ticket conversation.
 - Safe IT responses, such as password reset instructions or follow-up questions.
+- Compact email-only lookup results before opening full ticket details.
+
+Planned employee improvements:
 - Simulated employee directory lookup by email or employee ID to auto-fill department.
 
 Planned analytics:
