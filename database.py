@@ -272,6 +272,14 @@ def get_all_tickets(sort_by="status", sort_direction="asc", filters=None):
             where_clauses.append("LOWER(assigned_to) = ?")
             params.append(filters["assignee"].lower())
 
+    if filters.get("needs_owner"):
+        where_clauses.append(
+            """
+            status != 'Resolved'
+            AND (assigned_to IS NULL OR assigned_to = '')
+            """
+        )
+
     where_sql = ""
     if where_clauses:
         where_sql = "WHERE " + " AND ".join(where_clauses)
@@ -318,6 +326,21 @@ def get_admin_metrics():
         critical_count = connection.execute(
             "SELECT COUNT(*) FROM tickets WHERE suggested_priority = 'Critical'"
         ).fetchone()[0]
+        unassigned_open_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM tickets
+            WHERE status != 'Resolved'
+              AND (assigned_to IS NULL OR assigned_to = '')
+            """
+        ).fetchone()[0]
+        average_resolution_hours = connection.execute(
+            """
+            SELECT AVG((julianday(resolved_at) - julianday(created_at)) * 24)
+            FROM tickets
+            WHERE resolved_at IS NOT NULL
+            """
+        ).fetchone()[0]
         common_issue = connection.execute(
             """
             SELECT issue_type, COUNT(*) AS issue_count
@@ -327,6 +350,40 @@ def get_admin_metrics():
             LIMIT 1
             """
         ).fetchone()
+        issue_breakdown = connection.execute(
+            """
+            SELECT issue_type AS label, COUNT(*) AS count
+            FROM tickets
+            GROUP BY issue_type
+            ORDER BY count DESC, issue_type ASC
+            LIMIT 5
+            """
+        ).fetchall()
+        assignee_breakdown = connection.execute(
+            """
+            SELECT COALESCE(NULLIF(assigned_to, ''), 'Unassigned') AS label,
+                   COUNT(*) AS count
+            FROM tickets
+            GROUP BY COALESCE(NULLIF(assigned_to, ''), 'Unassigned')
+            ORDER BY count DESC, label ASC
+            LIMIT 5
+            """
+        ).fetchall()
+        priority_breakdown = connection.execute(
+            """
+            SELECT final_priority AS label, COUNT(*) AS count
+            FROM tickets
+            GROUP BY final_priority
+            ORDER BY
+              CASE final_priority
+                WHEN 'Critical' THEN 1
+                WHEN 'High' THEN 2
+                WHEN 'Medium' THEN 3
+                WHEN 'Low' THEN 4
+                ELSE 5
+              END
+            """
+        ).fetchall()
 
     return {
         "total": total,
@@ -334,8 +391,45 @@ def get_admin_metrics():
         "in_progress": in_progress_count,
         "resolved": resolved_count,
         "critical": critical_count,
+        "unassigned_open": unassigned_open_count,
+        "average_resolution_time": format_resolution_time(average_resolution_hours),
         "most_common_issue": common_issue["issue_type"] if common_issue else "None",
+        "issue_breakdown": format_breakdown(issue_breakdown, total),
+        "assignee_breakdown": format_breakdown(assignee_breakdown, total),
+        "priority_breakdown": format_breakdown(priority_breakdown, total),
     }
+
+
+def format_breakdown(rows, total):
+    breakdown = []
+
+    for row in rows:
+        count = row["count"]
+        percent = round((count / total) * 100) if total else 0
+        breakdown.append(
+            {
+                "label": row["label"],
+                "count": count,
+                "percent": percent,
+            }
+        )
+
+    return breakdown
+
+
+def format_resolution_time(hours):
+    if hours is None:
+        return "No resolved tickets"
+
+    if hours < 1:
+        minutes = max(1, round(hours * 60))
+        return f"{minutes} min"
+
+    if hours < 24:
+        return f"{hours:.1f} hrs"
+
+    days = hours / 24
+    return f"{days:.1f} days"
 
 
 def find_employee_tickets(ticket_number="", email=""):

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Login | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="page-section form-page">
+    <p class="eyebrow">Role Access</p>
+    <h1>Log in</h1>
+    <p>
+      Use one of the demo accounts to view the employee or admin side of the tracker.
+    </p>
+
+    {% if errors %}
+      <div class="alert alert-error" role="alert">
+        <strong>Please fix the following:</strong>
+        <ul>
+          {% for error in errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <div class="demo-login-grid">
+      <div class="demo-login-card">
+        <span class="metric-label">Employee Demo</span>
+        <strong>employee</strong>
+        <span>Password: employee123</span>
+      </div>
+      <div class="demo-login-card">
+        <span class="metric-label">Admin Demo</span>
+        <strong>admin</strong>
+        <span>Password: admin123</span>
+      </div>
+    </div>
+
+    <form class="ticket-form login-form" method="post" action="{{ url_for('login') }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" required>
+        </div>
+
+        <div class="form-field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="button button-primary" type="submit">Log In</button>
+        <a class="button button-secondary" href="{{ url_for('home') }}">Back to Workspace</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

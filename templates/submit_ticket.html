@@ -22,6 +22,14 @@
       </div>
     {% endif %}
 
+    <div class="directory-hint" id="directory-hint" data-found="{% if directory_record %}true{% else %}false{% endif %}">
+      {% if directory_record %}
+        Directory match found for {{ directory_record.name }} in {{ directory_record.department }}.
+      {% else %}
+        Enter a company email or employee ID to check the sample employee directory.
+      {% endif %}
+    </div>
+
     <form class="ticket-form" method="post" action="{{ url_for('submit_ticket') }}">
       <div class="form-grid">
         <div class="form-field">
@@ -80,4 +88,63 @@
       </div>
     </form>
   </section>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    const directoryLookupUrl = "{{ url_for('employee_directory_lookup') }}";
+    const nameInput = document.querySelector("#name");
+    const emailInput = document.querySelector("#email");
+    const employeeIdInput = document.querySelector("#employee_id");
+    const departmentInput = document.querySelector("#department");
+    const directoryHint = document.querySelector("#directory-hint");
+
+    async function lookupEmployeeDirectory() {
+      const email = emailInput.value.trim();
+      const employeeId = employeeIdInput.value.trim();
+
+      if (!email && !employeeId) {
+        directoryHint.textContent = "Enter a company email or employee ID to check the sample employee directory.";
+        directoryHint.dataset.found = "false";
+        return;
+      }
+
+      const params = new URLSearchParams({
+        email: email,
+        employee_id: employeeId,
+      });
+      const response = await fetch(`${directoryLookupUrl}?${params.toString()}`);
+      const result = await response.json();
+
+      if (!result.found) {
+        directoryHint.textContent = "No directory match found. You can still enter your details manually.";
+        directoryHint.dataset.found = "false";
+        return;
+      }
+
+      const employee = result.employee;
+
+      if (!nameInput.value.trim()) {
+        nameInput.value = employee.name;
+      }
+
+      if (!emailInput.value.trim()) {
+        emailInput.value = employee.email;
+      }
+
+      if (!employeeIdInput.value.trim()) {
+        employeeIdInput.value = employee.employee_id;
+      }
+
+      if (!departmentInput.value.trim()) {
+        departmentInput.value = employee.department;
+      }
+
+      directoryHint.textContent = `Directory match found for ${employee.name} in ${employee.department}.`;
+      directoryHint.dataset.found = "true";
+    }
+
+    emailInput.addEventListener("blur", lookupEmployeeDirectory);
+    employeeIdInput.addEventListener("blur", lookupEmployeeDirectory);
+  </script>
 {% endblock %}

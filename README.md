@@ -1,6 +1,6 @@
 # IT Help Desk Ticket Tracker
 
-This project will become a simple web-based IT help desk ticket tracker. The goal is to simulate a small internal business system where users can submit IT support requests and an admin can review, filter, and update ticket statuses.
+This project is a simple web-based IT help desk ticket tracker. The goal is to simulate a small internal business system where employees can submit IT support requests and admins can review, filter, and update ticket statuses.
 
 The preferred stack for this project is:
 
@@ -17,21 +17,23 @@ This is the current working version of the project.
 
 Right now, the app includes:
 
-- A basic Flask application in `app.py`
+- A basic Flask application in `it_track.py`
 - A home page template
 - A shared base layout template
 - Templates for the main employee and admin pages
-- Active routes for the home page, employee portal, submit ticket, admin dashboard, admin ticket detail, ticket conversation replies, and health check
+- Active routes for the home page, login/logout, employee portal, submit ticket, admin dashboard, admin ticket detail, ticket conversation replies, and health check
 - A custom dark-theme CSS file
 - A `requirements.txt` file listing Flask as the first dependency
 - A `.gitignore` file for local Python environment files
 - A `/health` route that can be used to confirm the app is running
 - A ticket submission form that validates required fields, saves to SQLite, and shows a confirmation page
 - A rule-based smart priority suggestion on submitted tickets
+- A simulated employee directory lookup that can fill employee details by company email or employee ID
 - An employee ticket lookup page that supports ticket number, email address, or both, with compact email-only results
+- Basic session login with employee and admin role separation
 - An admin console that displays submitted tickets, queue metrics, clickable ticket numbers, ticket detail pages, admin editing, private internal IT notes, and employee-visible replies
 
-Additional advanced analytics, employee directory lookup, and email notifications are planned for later phases.
+Additional advanced analytics, stronger production authentication, and email notifications are planned for later phases.
 
 ## Project Goal
 
@@ -55,6 +57,9 @@ The project currently includes:
 - SQLite ticket storage
 - Auto-generated ticket numbers
 - Ticket confirmation page
+- Simulated employee directory lookup by company email or employee ID
+- Basic login and role-aware navigation
+- Protected admin-only pages
 - Ticket statuses stored in the database: Open, In Progress, and Resolved
 - Employee ticket lookup by ticket number, email address, or both, with compact email-only results
 - Admin dashboard with ticket table and queue metrics
@@ -66,23 +71,24 @@ The project currently includes:
 - Internal/private IT notes on admin ticket detail pages
 - Employee-visible ticket conversation between IT and the requester
 - Rule-based smart priority suggestion
-- Basic analytics for ticket counts and most common issue type
+- Basic analytics for ticket counts, most common issue type, average resolution time, issue mix, assignee workload, and priority mix
 
-## Planned Features
+## Future Features
 
-The project still needs:
+The next planned improvements are:
 
 - Live admin search results while typing
 - Critical ticket email notification for rule-detected Critical tickets
-- Employee directory lookup to auto-fill department from employee email or ID
-- Advanced analytics, such as average resolution time and tickets by assignee
+- Export or reporting tools for ticket analytics
 
 ## Current File Structure
 
 ```text
 it_ticket_tracker/
-  app.py
+  it_track.py
   database.py
+  employee_directory.py
+  seed_demo_data.py
   schema.sql
   tickets.db
   requirements.txt
@@ -96,7 +102,7 @@ it_ticket_tracker/
     ticket_success.html
     admin_dashboard.html
     ticket_detail.html
-    admin_login.html
+    login.html
   static/
     css/
       styles.css
@@ -104,7 +110,7 @@ it_ticket_tracker/
 
 ## Template Notes
 
-The project now has the main template files for the current employee and admin workflows. Some templates are active pages, while others are reserved for later features.
+The project has the main template files for the current employee, admin, and login workflows.
 
 Current templates:
 
@@ -115,14 +121,17 @@ Current templates:
 - `ticket_success.html`: Confirmation page after a ticket is submitted.
 - `admin_dashboard.html`: Admin page for viewing submitted tickets and queue metrics.
 - `ticket_detail.html`: Admin page for viewing one ticket, updating admin triage fields, adding employee-visible replies, and adding private internal IT notes.
-- `admin_login.html`: Future admin login page.
+- `login.html`: Shared demo login page for employee and admin roles.
 
-The home, employee portal, submit ticket, ticket success, admin dashboard, and ticket detail templates are connected to active routes right now. Admin login will be connected when authentication is built.
+The home, login, employee portal, submit ticket, ticket success, admin dashboard, and ticket detail templates are connected to active routes right now.
 
 Current active routes:
 
 - `/`: Home page.
+- `/login`: Shared demo login page for employee and admin access.
+- `/logout`: Clears the current session.
 - `/employee`: Employee ticket lookup page.
+- `/employee-directory/lookup`: JSON lookup route for the simulated employee directory.
 - `/employee/ticket/<id>`: Employee-safe full ticket detail after email verification.
 - `/submit`: Employee ticket submission form.
 - `/admin`: Admin console for reviewing submitted tickets.
@@ -132,6 +141,22 @@ Current active routes:
 - `/admin/ticket/<id>/reply`: Admin-only POST route for employee-visible replies.
 - `/employee/ticket/<id>/reply`: Employee POST route for requester replies after email verification.
 - `/health`: Basic health check route.
+
+## Current Login Behavior
+
+The app uses simple Flask session login for demo role separation. This is intentionally beginner-friendly and meant for portfolio demonstration, not production security.
+
+Demo accounts:
+
+```text
+Employee username: employee
+Employee password: employee123
+
+Admin username: admin
+Admin password: admin123
+```
+
+Employees see employee navigation for submitting tickets and checking their tickets. Admins see admin navigation for the admin console. Admin-only routes redirect anonymous users to `/login` and return an access message if an employee account tries to open an admin page.
 
 ## Current Admin Console Behavior
 
@@ -150,7 +175,7 @@ Current admin fields shown:
 
 Visible timestamps are shortened to date plus hour and minute, while the database keeps the full stored timestamp.
 
-The admin console also shows basic queue metrics:
+The admin console also shows an admin-only Queue Snapshot with live queue metrics:
 
 - Total tickets
 - Open tickets
@@ -158,12 +183,16 @@ The admin console also shows basic queue metrics:
 - Resolved tickets
 - Critical suggested tickets
 - Most common issue type
+- Unassigned open tickets
+- Average resolution time
 
 The ticket number and View action both open the admin ticket detail page.
 
 The queue table supports sorting by ticket number, requester, issue, priority, status, assignee, and created date. Clicking a column header toggles the sort direction.
 
 The admin queue also supports searching by ticket number, requester, email, issue type, description keyword, or assignee. Admins can filter by status, priority, issue type, and assignee. The Critical priority filter includes both IT Priority Critical tickets and Smart Critical suggestions. Sorting preserves the current search and filter choices.
+
+The admin dashboard includes beginner-friendly analytics for issue type distribution, assignee workload, and final priority mix. These are displayed as compact dashboard panels instead of a separate reporting page for now.
 
 Future live-search enhancement: the admin search box can update results as the admin types, after a short delay. The current Apply Filters button should stay as the reliable fallback, with live search added as a light JavaScript enhancement rather than replacing the form workflow.
 
@@ -241,11 +270,11 @@ The app also calculates a smart priority suggestion. This is currently rule-base
 
 The full smart suggestion is intended for future admin review, not regular employee display. Employees only see a calm urgent-review notice when the rule suggests Critical and the employee selected a lower priority. The smart suggestion does not override the employee-selected priority yet.
 
-## Planned Employee Directory Lookup
+## Current Employee Directory Lookup
 
 In a real company, employee email addresses or employee IDs often connect to an internal directory. That directory can provide details such as name, department, title, manager, or location.
 
-For this project, a future version can simulate that behavior with a small employee directory. When an employee enters an email address or employee ID, the app could automatically fill the department field.
+For this project, the app simulates that behavior with a small employee directory in `employee_directory.py`. When an employee enters a matching company email address or employee ID on the submit ticket form, the app can fill available details such as name, email, employee ID, and department.
 
 Example:
 
@@ -255,6 +284,20 @@ Detected department: Accounting
 ```
 
 If the employee is not found in the directory, the form can still let them enter the department manually.
+
+The lookup also runs on the server during ticket submission. That means the form still works even if the browser JavaScript does not run.
+
+## Demo Data
+
+The project includes `seed_demo_data.py` for local screenshots and testing. It adds sample employees from the simulated directory and creates demo tickets with different issue types, priorities, statuses, assignees, and resolution times.
+
+Run it from the project folder:
+
+```powershell
+python seed_demo_data.py
+```
+
+The script refreshes existing `[Demo]` tickets before adding the sample set, so it is safe to run again without duplicating the sample data.
 
 Possible real-world integrations later:
 
@@ -285,7 +328,7 @@ pip install -r requirements.txt
 Run the Flask app:
 
 ```powershell
-python app.py
+python it_track.py
 ```
 
 Then open this address in a web browser:
@@ -310,9 +353,9 @@ You should see:
 
 ## Development Notes
 
-This project is being built one step at a time. The foundation, ticket submission, database storage, employee lookup, admin console, admin triage editing, internal IT notes, employee-visible ticket conversation, and admin queue filtering are now in place.
+This project is being built one step at a time. The foundation, login and role separation, ticket submission, database storage, simulated employee directory lookup, employee ticket lookup, admin console, admin triage editing, internal IT notes, employee-visible ticket conversation, admin queue filtering, and admin analytics are now in place.
 
-The next logical workflow step is either simulated employee directory lookup or expanded analytics.
+The next logical workflow step is either critical ticket email notification or live admin search.
 
 Live admin search is also planned as a future user-experience enhancement. The preferred approach is to keep the current Flask filter form working normally, then add JavaScript that waits briefly after typing before updating results.
 

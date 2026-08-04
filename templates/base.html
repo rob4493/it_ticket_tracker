@@ -20,17 +20,29 @@
         <nav class="nav-links" aria-label="Main navigation">
           <a href="{{ url_for('home') }}">Workspace</a>
 
-          <span class="nav-section-label">Employee</span>
-          <a href="{{ url_for('submit_ticket') }}">Submit Ticket</a>
-          <a href="{{ url_for('employee_portal') }}">My Tickets</a>
+          {% if is_employee %}
+            <span class="nav-section-label">Employee</span>
+            <a href="{{ url_for('submit_ticket') }}">Submit Ticket</a>
+            <a href="{{ url_for('employee_portal') }}">My Tickets</a>
+          {% endif %}
 
-          <span class="nav-section-label">Admin</span>
-          <a href="{{ url_for('admin_dashboard') }}">Admin Console</a>
+          {% if is_admin %}
+            <span class="nav-section-label">Admin</span>
+            <a href="{{ url_for('admin_dashboard') }}">Admin Console</a>
+          {% endif %}
+
+          <span class="nav-section-label">Account</span>
+          {% if current_user %}
+            <span class="nav-user">{{ current_user.display_name }} - {{ current_user.role|title }}</span>
+            <a href="{{ url_for('logout') }}">Log Out</a>
+          {% else %}
+            <a href="{{ url_for('login') }}">Log In</a>
+          {% endif %}
         </nav>
 
         <div class="sidebar-note">
           <span class="note-label">Build Stage</span>
-          <span class="note-value">Admin Queue</span>
+          <span class="note-value">Role Login</span>
         </div>
       </aside>
 
@@ -48,5 +60,6 @@
         </main>
       </div>
     </div>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

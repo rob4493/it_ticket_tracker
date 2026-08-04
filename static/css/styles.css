@@ -114,6 +114,14 @@ a {
   text-transform: uppercase;
 }
 
+.nav-user {
+  display: block;
+  padding: 6px 12px;
+  color: var(--accent-cyan);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
 .sidebar-note {
   margin-top: auto;
   padding: 14px;
@@ -564,6 +572,17 @@ td:first-child {
   margin-top: 12px;
 }
 
+.active-filter-note {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  border-radius: 6px;
+  background: rgba(125, 211, 252, 0.08);
+  color: var(--accent-cyan);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
 .filter-actions .button {
   min-height: 36px;
   padding: 0 13px;
@@ -571,8 +590,18 @@ td:first-child {
 
 .metric-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 12px;
+  margin-top: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-metric-strip {
+  margin-top: 14px;
+}
+
+.queue-snapshot {
   margin-top: 28px;
   padding-bottom: 28px;
   border-bottom: 1px solid var(--border);
@@ -581,6 +610,16 @@ td:first-child {
 .metric-item {
   padding: 14px 0;
   border-top: 1px solid var(--border);
+}
+
+.metric-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.metric-link:hover {
+  border-top-color: var(--accent);
 }
 
 .metric-label {
@@ -596,8 +635,95 @@ td:first-child {
   display: block;
   margin-top: 4px;
   color: var(--text);
-  font-size: 1.45rem;
+  font-size: clamp(1.05rem, 1.4vw, 1.45rem);
   line-height: 1;
+}
+
+.metric-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--accent-cyan);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(260px, 0.75fr);
+  gap: 16px;
+  margin-top: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.analytics-panel {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.analytics-panel-heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.analytics-panel-heading h2 {
+  margin-bottom: 0;
+}
+
+.analytics-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.analytics-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(120px, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.analytics-row strong,
+.analytics-row span {
+  display: block;
+}
+
+.analytics-row strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.analytics-row span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.analytics-bar {
+  height: 8px;
+  overflow: hidden;
+  background: #14181f;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.analytics-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-cyan));
+}
+
+.priority-mix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.empty-copy {
+  margin: 14px 0 0;
+  color: var(--muted);
 }
 
 .build-panel,
@@ -729,6 +855,52 @@ textarea:focus {
 .alert-suggestion {
   background: rgba(125, 211, 252, 0.09);
   border-color: rgba(125, 211, 252, 0.38);
+}
+
+.directory-hint {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 6px;
+  background: rgba(125, 211, 252, 0.07);
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.directory-hint[data-found="true"] {
+  border-color: rgba(34, 197, 94, 0.38);
+  background: rgba(34, 197, 94, 0.09);
+  color: #bbf7d0;
+}
+
+.demo-login-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.demo-login-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.demo-login-card strong,
+.demo-login-card span {
+  display: block;
+}
+
+.demo-login-card strong {
+  margin-top: 4px;
+  font-size: 1.1rem;
+}
+
+.demo-login-card span:last-child {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .submission-summary {
@@ -1188,6 +1360,11 @@ dd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .analytics-grid,
+  .analytics-row {
+    grid-template-columns: 1fr;
+  }
+
   .admin-filter-grid {
     grid-template-columns: 1fr;
   }
@@ -1205,6 +1382,7 @@ dd {
   }
 
   .form-grid,
+  .demo-login-grid,
   .employee-reply-grid,
   .internal-note-grid,
   .ticket-summary-item,

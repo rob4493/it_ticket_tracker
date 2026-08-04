@@ -12,26 +12,113 @@
     </p>
   </section>
 
-  <section class="metric-strip" aria-label="Admin ticket metrics">
-    <div class="metric-item">
-      <span class="metric-label">Total</span>
-      <strong>{{ metrics.total }}</strong>
+  <section class="queue-snapshot" aria-labelledby="queue-snapshot-title">
+    <div class="section-heading-row">
+      <div>
+        <p class="eyebrow">Queue Snapshot</p>
+        <h2 id="queue-snapshot-title">Current ticket pool</h2>
+      </div>
+      <span class="status-chip">Live Queue Metrics</span>
     </div>
-    <div class="metric-item">
-      <span class="metric-label">Open</span>
-      <strong>{{ metrics.open }}</strong>
+
+    <div class="metric-strip admin-metric-strip" aria-label="Admin ticket metrics">
+      <div class="metric-item">
+        <span class="metric-label">Total</span>
+        <strong>{{ metrics.total }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Open</span>
+        <strong>{{ metrics.open }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">In Progress</span>
+        <strong>{{ metrics.in_progress }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Resolved</span>
+        <strong>{{ metrics.resolved }}</strong>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Critical Suggested</span>
+        <strong>{{ metrics.critical }}</strong>
+      </div>
+      <a class="metric-item metric-link" href="{{ url_for('admin_dashboard', needs_owner='1') }}">
+        <span class="metric-label">Unassigned Open</span>
+        <strong>{{ metrics.unassigned_open }}</strong>
+        <span class="metric-note">View tickets needing owner</span>
+      </a>
+      <div class="metric-item">
+        <span class="metric-label">Avg Resolution</span>
+        <strong>{{ metrics.average_resolution_time }}</strong>
+      </div>
     </div>
-    <div class="metric-item">
-      <span class="metric-label">In Progress</span>
-      <strong>{{ metrics.in_progress }}</strong>
+  </section>
+
+  <section class="analytics-grid" aria-label="Admin ticket analytics">
+    <div class="analytics-panel">
+      <div class="analytics-panel-heading">
+        <p class="eyebrow">Analytics</p>
+        <h2>Issue types</h2>
+      </div>
+      {% if metrics.issue_breakdown %}
+        <div class="analytics-list">
+          {% for item in metrics.issue_breakdown %}
+            <div class="analytics-row">
+              <div>
+                <strong>{{ item.label }}</strong>
+                <span>{{ item.count }} tickets</span>
+              </div>
+              <div class="analytics-bar" aria-label="{{ item.percent }} percent">
+                <span style="width: {{ item.percent }}%;"></span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-copy">No ticket data yet.</p>
+      {% endif %}
     </div>
-    <div class="metric-item">
-      <span class="metric-label">Resolved</span>
-      <strong>{{ metrics.resolved }}</strong>
+
+    <div class="analytics-panel">
+      <div class="analytics-panel-heading">
+        <p class="eyebrow">Workload</p>
+        <h2>Assignees</h2>
+      </div>
+      {% if metrics.assignee_breakdown %}
+        <div class="analytics-list">
+          {% for item in metrics.assignee_breakdown %}
+            <div class="analytics-row">
+              <div>
+                <strong>{{ item.label }}</strong>
+                <span>{{ item.count }} tickets</span>
+              </div>
+              <div class="analytics-bar" aria-label="{{ item.percent }} percent">
+                <span style="width: {{ item.percent }}%;"></span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-copy">No assignee data yet.</p>
+      {% endif %}
     </div>
-    <div class="metric-item">
-      <span class="metric-label">Critical Suggested</span>
-      <strong>{{ metrics.critical }}</strong>
+
+    <div class="analytics-panel">
+      <div class="analytics-panel-heading">
+        <p class="eyebrow">Triage</p>
+        <h2>Priority mix</h2>
+      </div>
+      {% if metrics.priority_breakdown %}
+        <div class="priority-mix">
+          {% for item in metrics.priority_breakdown %}
+            <span class="priority-suggestion priority-{{ item.label|lower }}">
+              {{ item.label }}: {{ item.count }}
+            </span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-copy">No priority data yet.</p>
+      {% endif %}
     </div>
   </section>
 
@@ -47,6 +134,15 @@
     <form class="admin-filter-form" method="get" action="{{ url_for('admin_dashboard') }}">
       <input type="hidden" name="sort" value="{{ sort_by }}">
       <input type="hidden" name="direction" value="{{ sort_direction }}">
+      {% if filters.needs_owner %}
+        <input type="hidden" name="needs_owner" value="{{ filters.needs_owner }}">
+      {% endif %}
+
+      {% if filters.needs_owner %}
+        <div class="active-filter-note">
+          Showing open or in-progress tickets that do not have an assignee.
+        </div>
+      {% endif %}
 
       <div class="admin-filter-grid">
         <div class="form-field admin-search-field">
@@ -121,7 +217,7 @@
         <table>
           {% macro sort_heading(label, key) -%}
             {% set next_direction = 'desc' if sort_by == key and sort_direction == 'asc' else 'asc' %}
-            <a class="sort-link {% if sort_by == key %}sort-active{% endif %}" href="{{ url_for('admin_dashboard', sort=key, direction=next_direction, search=filters.search, status=filters.status, priority=filters.priority, issue_type=filters.issue_type, assignee=filters.assignee) }}">
+            <a class="sort-link {% if sort_by == key %}sort-active{% endif %}" href="{{ url_for('admin_dashboard', sort=key, direction=next_direction, search=filters.search, status=filters.status, priority=filters.priority, issue_type=filters.issue_type, assignee=filters.assignee, needs_owner=filters.needs_owner) }}">
               {{ label }}
               {% if sort_by == key %}
                 <span aria-hidden="true">{{ "^" if sort_direction == "asc" else "v" }}</span>

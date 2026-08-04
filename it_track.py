@@ -1,6 +1,8 @@
+import os
 from datetime import datetime
+from functools import wraps
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
 from database import (
     add_internal_note,
@@ -16,10 +18,26 @@ from database import (
     init_db,
     update_ticket_admin_fields,
 )
+from employee_directory import find_employee_record, public_employee_record
 
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-before-production")
 init_db()
+
+
+DEMO_USERS = {
+    "employee": {
+        "password": "employee123",
+        "role": "employee",
+        "display_name": "Demo Employee",
+    },
+    "admin": {
+        "password": "admin123",
+        "role": "admin",
+        "display_name": "IT Admin",
+    },
+}
 
 
 @app.template_filter("short_datetime")
@@ -36,6 +54,98 @@ def short_datetime(value):
 @app.route("/")
 def home():
     return render_template("home.html")
+
+
+@app.context_processor
+def inject_current_user():
+    return {
+        "current_user": get_current_user(),
+        "is_admin": session.get("role") == "admin",
+        "is_employee": session.get("role") == "employee",
+    }
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    errors = []
+    next_url = safe_next_url(request.args.get("next", ""))
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        next_url = safe_next_url(request.form.get("next", ""))
+        user = DEMO_USERS.get(username)
+
+        if user and password == user["password"]:
+            session.clear()
+            session["username"] = username
+            session["role"] = user["role"]
+            session["display_name"] = user["display_name"]
+            return redirect(next_url or default_route_for_role(user["role"]))
+
+        errors.append("Enter a valid demo username and password.")
+
+    return render_template("login.html", errors=errors, next_url=next_url)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
+
+
+def get_current_user():
+    if "username" not in session:
+        return None
+
+    return {
+        "username": session["username"],
+        "role": session.get("role", ""),
+        "display_name": session.get("display_name", session["username"]),
+    }
+
+
+def default_route_for_role(role):
+    if role == "admin":
+        return url_for("admin_dashboard")
+
+    return url_for("employee_portal")
+
+
+def safe_next_url(next_url):
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return next_url
+
+    return ""
+
+
+def login_required(view_function):
+    @wraps(view_function)
+    def wrapped_view(*args, **kwargs):
+        if get_current_user() is None:
+            return redirect(url_for("login", next=request.path))
+
+        return view_function(*args, **kwargs)
+
+    return wrapped_view
+
+
+def admin_required(view_function):
+    @wraps(view_function)
+    def wrapped_view(*args, **kwargs):
+        if get_current_user() is None:
+            return redirect(url_for("login", next=request.path))
+
+        if session.get("role") != "admin":
+            return render_template(
+                "login.html",
+                errors=["Admin access is required for that page."],
+                next_url=request.path,
+            ), 403
+
+        return view_function(*args, **kwargs)
+
+    return wrapped_view
 
 
 ISSUE_TYPES = [
@@ -84,6 +194,7 @@ BUSINESS_IMPACT_TERMS = [
 
 
 @app.route("/submit", methods=["GET", "POST"])
+@login_required
 def submit_ticket():
     if request.method == "POST":
         ticket = {
@@ -95,6 +206,11 @@ def submit_ticket():
             "priority": request.form.get("priority", "").strip(),
             "description": request.form.get("description", "").strip(),
         }
+        directory_record = find_employee_record(
+            email=ticket["email"],
+            employee_id=ticket["employee_id"],
+        )
+        apply_directory_record(ticket, directory_record)
 
         errors = validate_ticket_form(ticket)
         if errors:
@@ -104,6 +220,7 @@ def submit_ticket():
                 ticket=ticket,
                 issue_types=ISSUE_TYPES,
                 priorities=PRIORITIES,
+                directory_record=directory_record,
             )
 
         priority_suggestion = suggest_priority(ticket)
@@ -124,7 +241,32 @@ def submit_ticket():
         ticket={},
         issue_types=ISSUE_TYPES,
         priorities=PRIORITIES,
+        directory_record=None,
     )
+
+
+@app.route("/employee-directory/lookup")
+@login_required
+def employee_directory_lookup():
+    employee = find_employee_record(
+        email=request.args.get("email", ""),
+        employee_id=request.args.get("employee_id", ""),
+    )
+
+    if employee is None:
+        return jsonify({"found": False})
+
+    return jsonify({"found": True, "employee": public_employee_record(employee)})
+
+
+def apply_directory_record(ticket, directory_record):
+    if directory_record is None:
+        return
+
+    ticket["name"] = ticket["name"] or directory_record["name"]
+    ticket["email"] = ticket["email"] or directory_record["email"]
+    ticket["employee_id"] = ticket["employee_id"] or directory_record["employee_id"]
+    ticket["department"] = ticket["department"] or directory_record["department"]
 
 
 def validate_ticket_form(ticket):
@@ -215,6 +357,7 @@ def should_show_employee_urgent_notice(selected_priority, suggested_priority):
 
 
 @app.route("/employee", methods=["GET", "POST"])
+@login_required
 def employee_portal():
     tickets = []
     lookup_attempted = False
@@ -251,6 +394,7 @@ def employee_portal():
 
 
 @app.route("/employee/ticket/<int:ticket_id>")
+@login_required
 def employee_ticket_detail(ticket_id):
     ticket = get_ticket_by_id(ticket_id)
     email = request.args.get("email", "").strip().lower()
@@ -296,6 +440,7 @@ def employee_ticket_detail(ticket_id):
 
 
 @app.route("/employee/ticket/<int:ticket_id>/reply", methods=["POST"])
+@login_required
 def add_employee_reply(ticket_id):
     ticket = get_ticket_by_id(ticket_id)
     if ticket is None:
@@ -370,6 +515,7 @@ def render_employee_portal(
 
 
 @app.route("/admin")
+@admin_required
 def admin_dashboard():
     sort_by = request.args.get("sort", "status").strip().lower()
     sort_direction = request.args.get("direction", "asc").strip().lower()
@@ -379,6 +525,7 @@ def admin_dashboard():
         "priority": request.args.get("priority", "").strip(),
         "issue_type": request.args.get("issue_type", "").strip(),
         "assignee": request.args.get("assignee", "").strip(),
+        "needs_owner": request.args.get("needs_owner", "").strip(),
     }
 
     if sort_by not in ADMIN_SORT_OPTIONS:
@@ -404,6 +551,9 @@ def admin_dashboard():
     ):
         filters["assignee"] = ""
 
+    if filters["needs_owner"] != "1":
+        filters["needs_owner"] = ""
+
     tickets = get_all_tickets(
         sort_by=sort_by,
         sort_direction=sort_direction,
@@ -425,6 +575,7 @@ def admin_dashboard():
 
 
 @app.route("/admin/ticket/<int:ticket_id>")
+@admin_required
 def admin_ticket_detail(ticket_id):
     if get_ticket_by_id(ticket_id) is None:
         return render_admin_ticket_detail(ticket_id=ticket_id), 404
@@ -436,6 +587,7 @@ def admin_ticket_detail(ticket_id):
 
 
 @app.route("/admin/ticket/<int:ticket_id>/edit", methods=["POST"])
+@admin_required
 def update_admin_ticket(ticket_id):
     ticket = get_ticket_by_id(ticket_id)
     if ticket is None:
@@ -463,6 +615,7 @@ def update_admin_ticket(ticket_id):
 
 
 @app.route("/admin/ticket/<int:ticket_id>/note", methods=["POST"])
+@admin_required
 def add_ticket_note(ticket_id):
     if get_ticket_by_id(ticket_id) is None:
         return render_admin_ticket_detail(ticket_id=ticket_id), 404
@@ -482,6 +635,7 @@ def add_ticket_note(ticket_id):
 
 
 @app.route("/admin/ticket/<int:ticket_id>/reply", methods=["POST"])
+@admin_required
 def add_admin_reply(ticket_id):
     if get_ticket_by_id(ticket_id) is None:
         return render_admin_ticket_detail(ticket_id=ticket_id), 404
