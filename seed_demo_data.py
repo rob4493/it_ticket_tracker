@@ -56,6 +56,10 @@ def main():
         if existing_demo_ids:
             placeholders = ",".join("?" for _ in existing_demo_ids)
             connection.execute(
+                f"DELETE FROM notification_logs WHERE ticket_id IN ({placeholders})",
+                existing_demo_ids,
+            )
+            connection.execute(
                 f"DELETE FROM ticket_updates WHERE ticket_id IN ({placeholders})",
                 existing_demo_ids,
             )
@@ -131,6 +135,35 @@ def main():
                 "UPDATE tickets SET ticket_number = ? WHERE id = ?",
                 (ticket_number, ticket_id),
             )
+
+            detected_priority = suggested_priority(issue_type, priority, description)
+            if detected_priority == "Critical":
+                connection.execute(
+                    """
+                    INSERT INTO notification_logs (
+                      ticket_id,
+                      notification_type,
+                      recipient,
+                      subject,
+                      message,
+                      delivery_status,
+                      created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        ticket_id,
+                        "Critical smart detection",
+                        "it-admins@company.com",
+                        f"Critical IT ticket detected: {ticket_number}",
+                        (
+                            f"{ticket_number} was flagged Critical by rule-based detection. "
+                            f"Requester: {employee['name']}. Issue type: {issue_type}."
+                        ),
+                        "Simulated email logged",
+                        created_at.isoformat(timespec="seconds"),
+                    ),
+                )
 
             if index % 4 == 0:
                 connection.execute(

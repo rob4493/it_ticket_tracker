@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Critical Alerts | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="workspace-intro">
+    <p class="eyebrow">Admin Alerts</p>
+    <h1>Critical alert log</h1>
+    <p>
+      Review every smart-detected Critical notification, then filter the log
+      when the alert history gets busy.
+    </p>
+  </section>
+
+  <section class="queue-preview admin-queue" aria-labelledby="critical-alerts-title">
+    <div class="section-heading-row">
+      <div>
+        <p class="eyebrow">Simulated Email Log</p>
+        <h2 id="critical-alerts-title">All critical alerts</h2>
+      </div>
+      <span class="status-chip">{{ notifications|length }} found</span>
+    </div>
+
+    <form class="admin-filter-form" method="get" action="{{ url_for('critical_alert_log') }}">
+      <div class="admin-filter-grid alert-filter-grid">
+        <div class="form-field admin-search-field">
+          <label for="search">Search</label>
+          <input
+            id="search"
+            name="search"
+            type="search"
+            placeholder="Ticket, requester, email, recipient, or keyword"
+            value="{{ filters.search }}"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="status">Ticket Status</label>
+          <select id="status" name="status">
+            <option value="">All statuses</option>
+            {% for status in statuses %}
+              <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>
+                {{ status }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="issue_type">Issue Type</label>
+          <select id="issue_type" name="issue_type">
+            <option value="">All issue types</option>
+            {% for issue_type in issue_types %}
+              <option value="{{ issue_type }}" {% if filters.issue_type == issue_type %}selected{% endif %}>
+                {{ issue_type }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="recipient">Recipient</label>
+          <input
+            id="recipient"
+            name="recipient"
+            type="search"
+            placeholder="it-admins@company.com"
+            value="{{ filters.recipient }}"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="date_from">From</label>
+          <input id="date_from" name="date_from" type="date" value="{{ filters.date_from }}">
+        </div>
+
+        <div class="form-field">
+          <label for="date_to">To</label>
+          <input id="date_to" name="date_to" type="date" value="{{ filters.date_to }}">
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="button button-primary" type="submit">Apply Filters</button>
+        <a class="button button-secondary" href="{{ url_for('critical_alert_log') }}">Clear</a>
+        <a class="button button-secondary" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+      </div>
+    </form>
+
+    {% if notifications %}
+      <div class="alert-log-list">
+        {% for notification in notifications %}
+          <article class="alert-log-card">
+            <div class="alert-log-card-header">
+              <div>
+                <a class="ticket-link ticket-link-critical alert-ticket-link" href="{{ url_for('admin_ticket_detail', ticket_id=notification.ticket_id) }}">
+                  {{ notification.ticket_number }}
+                </a>
+                <h3>{{ notification.subject }}</h3>
+              </div>
+              <a class="table-action" href="{{ url_for('admin_ticket_detail', ticket_id=notification.ticket_id) }}">View Ticket</a>
+            </div>
+
+            <div class="alert-log-meta" aria-label="Critical alert details">
+              <div>
+                <span class="metric-label">Logged</span>
+                <strong>{{ notification.created_at|short_datetime }}</strong>
+              </div>
+              <div>
+                <span class="metric-label">Requester</span>
+                <strong>{{ notification.requester_name }}</strong>
+                <span>{{ notification.requester_email }}</span>
+              </div>
+              <div>
+                <span class="metric-label">Issue</span>
+                <strong>{{ notification.issue_type }}</strong>
+              </div>
+              <div>
+                <span class="metric-label">Ticket Status</span>
+                <span class="ticket-status status-{{ notification.status|lower|replace(' ', '-') }}">
+                  {{ notification.status }}
+                </span>
+              </div>
+              <div>
+                <span class="metric-label">Recipient</span>
+                <strong>{{ notification.recipient }}</strong>
+              </div>
+              <div>
+                <span class="metric-label">Email Status</span>
+                <strong>{{ notification.delivery_status }}</strong>
+              </div>
+            </div>
+
+            <div class="alert-log-message">
+              <span class="metric-label">Detection Reason</span>
+              <p>{{ notification.priority_reason }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-info">
+        No critical notification logs match the current filters.
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

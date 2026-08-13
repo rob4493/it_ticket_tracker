@@ -28,7 +28,9 @@
 
           {% if is_admin %}
             <span class="nav-section-label">Admin</span>
-            <a href="{{ url_for('admin_dashboard') }}">Admin Console</a>
+            <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+            <a href="{{ url_for('admin_ticket_queue') }}">Ticket Queue</a>
+            <a href="{{ url_for('critical_alert_log') }}">Critical Alerts</a>
           {% endif %}
 
           <span class="nav-section-label">Account</span>

@@ -27,3 +27,15 @@ CREATE TABLE IF NOT EXISTS ticket_updates (
   created_at TEXT NOT NULL,
   FOREIGN KEY (ticket_id) REFERENCES tickets (id)
 );
+
+CREATE TABLE IF NOT EXISTS notification_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticket_id INTEGER NOT NULL,
+  notification_type TEXT NOT NULL,
+  recipient TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  delivery_status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (ticket_id) REFERENCES tickets (id)
+);

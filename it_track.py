@@ -6,15 +6,19 @@ from flask import Flask, jsonify, redirect, render_template, request, session, u
 
 from database import (
     add_internal_note,
+    add_notification_log,
     add_public_update,
     create_ticket,
     find_employee_tickets,
     get_admin_metrics,
     get_all_tickets,
     get_assignee_options,
+    get_critical_notifications,
     get_internal_notes,
+    get_recent_critical_notifications,
     get_public_updates,
     get_ticket_by_id,
+    get_ticket_count,
     init_db,
     update_ticket_admin_fields,
 )
@@ -38,6 +42,8 @@ DEMO_USERS = {
         "display_name": "IT Admin",
     },
 }
+
+ADMIN_NOTIFICATION_RECIPIENT = "it-admins@company.com"
 
 
 @app.template_filter("short_datetime")
@@ -164,6 +170,7 @@ PRIORITY_RANK = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4}
 TICKET_STATUSES = ["Open", "In Progress", "Resolved"]
 ADMIN_SORT_OPTIONS = {"ticket", "requester", "issue", "priority", "status", "assignee", "created"}
 ADMIN_SORT_DIRECTIONS = {"asc", "desc"}
+QUEUE_PAGE_SIZES = [10, 25, 50, 100]
 
 SECURITY_CRITICAL_TERMS = [
     "phishing",
@@ -191,6 +198,13 @@ BUSINESS_IMPACT_TERMS = [
     "system down",
     "outage",
 ]
+
+
+def parse_int(value, default):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 @app.route("/submit", methods=["GET", "POST"])
@@ -225,6 +239,8 @@ def submit_ticket():
 
         priority_suggestion = suggest_priority(ticket)
         saved_ticket = create_ticket(ticket, priority_suggestion)
+        if priority_suggestion["priority"] == "Critical":
+            log_critical_ticket_notification(saved_ticket, priority_suggestion)
         show_employee_urgent_notice = should_show_employee_urgent_notice(
             ticket["priority"], priority_suggestion["priority"]
         )
@@ -267,6 +283,21 @@ def apply_directory_record(ticket, directory_record):
     ticket["email"] = ticket["email"] or directory_record["email"]
     ticket["employee_id"] = ticket["employee_id"] or directory_record["employee_id"]
     ticket["department"] = ticket["department"] or directory_record["department"]
+
+
+def log_critical_ticket_notification(ticket, priority_suggestion):
+    notification = {
+        "notification_type": "Critical smart detection",
+        "recipient": ADMIN_NOTIFICATION_RECIPIENT,
+        "subject": f"Critical IT ticket detected: {ticket['ticket_number']}",
+        "message": (
+            f"{ticket['ticket_number']} was flagged Critical by rule-based detection. "
+            f"Requester: {ticket['requester_name']}. Issue type: {ticket['issue_type']}. "
+            f"Reason: {priority_suggestion['reason']}"
+        ),
+        "delivery_status": "Simulated email logged",
+    }
+    add_notification_log(ticket["id"], notification)
 
 
 def validate_ticket_form(ticket):
@@ -517,8 +548,22 @@ def render_employee_portal(
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
+    metrics = get_admin_metrics()
+    critical_notifications = get_recent_critical_notifications()
+    return render_template(
+        "admin_dashboard.html",
+        metrics=metrics,
+        critical_notifications=critical_notifications,
+    )
+
+
+@app.route("/admin/queue")
+@admin_required
+def admin_ticket_queue():
     sort_by = request.args.get("sort", "status").strip().lower()
     sort_direction = request.args.get("direction", "asc").strip().lower()
+    page_size = parse_int(request.args.get("page_size"), default=10)
+    page = parse_int(request.args.get("page"), default=1)
     filters = {
         "search": request.args.get("search", "").strip(),
         "status": request.args.get("status", "").strip(),
@@ -533,6 +578,12 @@ def admin_dashboard():
 
     if sort_direction not in ADMIN_SORT_DIRECTIONS:
         sort_direction = "asc"
+
+    if page_size not in QUEUE_PAGE_SIZES:
+        page_size = 10
+
+    if page < 1:
+        page = 1
 
     if filters["status"] and filters["status"] not in TICKET_STATUSES:
         filters["status"] = ""
@@ -554,16 +605,33 @@ def admin_dashboard():
     if filters["needs_owner"] != "1":
         filters["needs_owner"] = ""
 
+    total_tickets = get_ticket_count(filters=filters)
+    total_pages = max((total_tickets + page_size - 1) // page_size, 1)
+    if page > total_pages:
+        page = total_pages
+
+    offset = (page - 1) * page_size
     tickets = get_all_tickets(
         sort_by=sort_by,
         sort_direction=sort_direction,
         filters=filters,
+        limit=page_size,
+        offset=offset,
     )
+    visible_start = offset + 1 if total_tickets else 0
+    visible_end = min(offset + len(tickets), total_tickets)
     metrics = get_admin_metrics()
     return render_template(
-        "admin_dashboard.html",
+        "admin_queue.html",
         metrics=metrics,
         tickets=tickets,
+        page=page,
+        page_size=page_size,
+        page_sizes=QUEUE_PAGE_SIZES,
+        total_pages=total_pages,
+        total_tickets=total_tickets,
+        visible_start=visible_start,
+        visible_end=visible_end,
         sort_by=sort_by,
         sort_direction=sort_direction,
         filters=filters,
@@ -583,6 +651,34 @@ def admin_ticket_detail(ticket_id):
     return render_admin_ticket_detail(
         ticket_id=ticket_id,
         success_message=request.args.get("success", "").strip(),
+    )
+
+
+@app.route("/admin/critical-alerts")
+@admin_required
+def critical_alert_log():
+    filters = {
+        "search": request.args.get("search", "").strip(),
+        "status": request.args.get("status", "").strip(),
+        "issue_type": request.args.get("issue_type", "").strip(),
+        "recipient": request.args.get("recipient", "").strip(),
+        "date_from": request.args.get("date_from", "").strip(),
+        "date_to": request.args.get("date_to", "").strip(),
+    }
+
+    if filters["status"] and filters["status"] not in TICKET_STATUSES:
+        filters["status"] = ""
+
+    if filters["issue_type"] and filters["issue_type"] not in ISSUE_TYPES:
+        filters["issue_type"] = ""
+
+    notifications = get_critical_notifications(filters=filters)
+    return render_template(
+        "critical_alerts.html",
+        notifications=notifications,
+        filters=filters,
+        statuses=TICKET_STATUSES,
+        issue_types=ISSUE_TYPES,
     )
 
 

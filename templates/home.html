@@ -15,7 +15,7 @@
         <a class="button button-primary" href="{{ url_for('submit_ticket') }}">Submit Ticket</a>
         <a class="button button-secondary" href="{{ url_for('employee_portal') }}">Check My Tickets</a>
       {% elif is_admin %}
-        <a class="button button-primary" href="{{ url_for('admin_dashboard') }}">Open Admin Console</a>
+        <a class="button button-primary" href="{{ url_for('admin_dashboard') }}">Open Admin Dashboard</a>
       {% else %}
         <a class="button button-primary" href="{{ url_for('login') }}">Log In</a>
       {% endif %}
@@ -53,7 +53,8 @@
       </ol>
       <div class="inline-actions">
         {% if is_admin %}
-          <a href="{{ url_for('admin_dashboard') }}">Open admin console</a>
+          <a href="{{ url_for('admin_dashboard') }}">Open admin dashboard</a>
+          <a href="{{ url_for('admin_ticket_queue') }}">Open ticket queue</a>
         {% else %}
           <a href="{{ url_for('login') }}">Admin login</a>
         {% endif %}

@@ -31,7 +31,10 @@ Right now, the app includes:
 - A simulated employee directory lookup that can fill employee details by company email or employee ID
 - An employee ticket lookup page that supports ticket number, email address, or both, with compact email-only results
 - Basic session login with employee and admin role separation
-- An admin console that displays submitted tickets, queue metrics, clickable ticket numbers, ticket detail pages, admin editing, private internal IT notes, and employee-visible replies
+- An admin dashboard for queue metrics, analytics, and recent Critical alerts
+- A dedicated admin Ticket Queue page with search, filters, sorting, pagination, clickable ticket numbers, and ticket detail links
+- Admin ticket detail pages with triage editing, private internal IT notes, and employee-visible replies
+- A full Critical Alert Log page with filters for simulated Critical email notifications
 
 Additional advanced analytics, stronger production authentication, and email notifications are planned for later phases.
 
@@ -62,10 +65,14 @@ The project currently includes:
 - Protected admin-only pages
 - Ticket statuses stored in the database: Open, In Progress, and Resolved
 - Employee ticket lookup by ticket number, email address, or both, with compact email-only results
-- Admin dashboard with ticket table and queue metrics
+- Admin dashboard with queue metrics, analytics, and recent Critical alert previews
+- Dedicated admin Ticket Queue page with 10, 25, 50, and 100 ticket page-size options
+- Full Critical Alert Log page with search and filters
 - Admin ticket detail page with status, assignee, issue type, and priority editing
 - Admin queue sorting by ticket number, requester, issue, priority, status, assignee, and created date
 - Admin queue search and filters by keyword, status, priority, issue type, and assignee
+- Live admin search results while typing or changing filters
+- Simulated critical email notification log for rule-detected Critical tickets
 - Critical smart-suggestion indicators in the admin queue
 - Shortened visible timestamps without seconds
 - Internal/private IT notes on admin ticket detail pages
@@ -77,8 +84,7 @@ The project currently includes:
 
 The next planned improvements are:
 
-- Live admin search results while typing
-- Critical ticket email notification for rule-detected Critical tickets
+- Real SMTP email sending for rule-detected Critical tickets
 - Export or reporting tools for ticket analytics
 
 ## Current File Structure
@@ -89,6 +95,7 @@ it_ticket_tracker/
   database.py
   employee_directory.py
   seed_demo_data.py
+  seed_notification_logs.py
   schema.sql
   tickets.db
   requirements.txt
@@ -101,6 +108,8 @@ it_ticket_tracker/
     submit_ticket.html
     ticket_success.html
     admin_dashboard.html
+    admin_queue.html
+    critical_alerts.html
     ticket_detail.html
     login.html
   static/
@@ -119,11 +128,13 @@ Current templates:
 - `employee_portal.html`: Employee area for checking ticket status, viewing IT replies, and adding requester replies.
 - `submit_ticket.html`: Ticket submission form.
 - `ticket_success.html`: Confirmation page after a ticket is submitted.
-- `admin_dashboard.html`: Admin page for viewing submitted tickets and queue metrics.
+- `admin_dashboard.html`: Admin overview page for queue metrics, analytics, and recent Critical alerts.
+- `admin_queue.html`: Admin working queue page for viewing, searching, filtering, sorting, and opening submitted tickets.
+- `critical_alerts.html`: Admin page for reviewing the full simulated Critical alert log with filters.
 - `ticket_detail.html`: Admin page for viewing one ticket, updating admin triage fields, adding employee-visible replies, and adding private internal IT notes.
 - `login.html`: Shared demo login page for employee and admin roles.
 
-The home, login, employee portal, submit ticket, ticket success, admin dashboard, and ticket detail templates are connected to active routes right now.
+The home, login, employee portal, submit ticket, ticket success, admin dashboard, admin queue, Critical alerts, and ticket detail templates are connected to active routes right now.
 
 Current active routes:
 
@@ -134,7 +145,9 @@ Current active routes:
 - `/employee-directory/lookup`: JSON lookup route for the simulated employee directory.
 - `/employee/ticket/<id>`: Employee-safe full ticket detail after email verification.
 - `/submit`: Employee ticket submission form.
-- `/admin`: Admin console for reviewing submitted tickets.
+- `/admin`: Admin dashboard for metrics, analytics, and recent alert snapshots.
+- `/admin/queue`: Admin working queue for searching, filtering, sorting, and opening submitted tickets.
+- `/admin/critical-alerts`: Admin-only Critical alert log with search and filters.
 - `/admin/ticket/<id>`: Admin ticket detail page with status, assignee, issue type, priority editing, and private internal IT notes.
 - `/admin/ticket/<id>/edit`: Admin-only POST route for status, assignee, issue type, and priority updates.
 - `/admin/ticket/<id>/note`: Admin-only POST route for private internal IT notes.
@@ -156,11 +169,15 @@ Admin username: admin
 Admin password: admin123
 ```
 
-Employees see employee navigation for submitting tickets and checking their tickets. Admins see admin navigation for the admin console. Admin-only routes redirect anonymous users to `/login` and return an access message if an employee account tries to open an admin page.
+Employees see employee navigation for submitting tickets and checking their tickets. Admins see navigation for the Admin Dashboard, Ticket Queue, and Critical Alerts. Admin-only routes redirect anonymous users to `/login` and return an access message if an employee account tries to open an admin page.
 
-## Current Admin Console Behavior
+## Current Admin Area Behavior
 
-The `/admin` page now shows submitted tickets from SQLite in a table.
+The admin area is split into an overview dashboard and a full working queue.
+
+The `/admin` page shows queue metrics, analytics, and recent Critical alert logs. It is meant to answer what is happening in the support workload without flooding the page with every ticket.
+
+The `/admin/queue` page shows submitted tickets from SQLite in a full working table.
 
 Current admin fields shown:
 
@@ -175,7 +192,7 @@ Current admin fields shown:
 
 Visible timestamps are shortened to date plus hour and minute, while the database keeps the full stored timestamp.
 
-The admin console also shows an admin-only Queue Snapshot with live queue metrics:
+The admin dashboard also shows an admin-only Queue Snapshot with live queue metrics:
 
 - Total tickets
 - Open tickets
@@ -190,11 +207,11 @@ The ticket number and View action both open the admin ticket detail page.
 
 The queue table supports sorting by ticket number, requester, issue, priority, status, assignee, and created date. Clicking a column header toggles the sort direction.
 
-The admin queue also supports searching by ticket number, requester, email, issue type, description keyword, or assignee. Admins can filter by status, priority, issue type, and assignee. The Critical priority filter includes both IT Priority Critical tickets and Smart Critical suggestions. Sorting preserves the current search and filter choices.
+The full admin queue supports searching by ticket number, requester, email, issue type, description keyword, or assignee. Admins can filter by status, priority, issue type, and assignee. Results update live while typing or changing filters, and the Apply Filters button remains as a fallback. The Critical priority filter includes both IT Priority Critical tickets and Smart Critical suggestions. Sorting preserves the current search and filter choices. The queue shows 10 tickets by default, with options to view 25, 50, or 100 tickets at a time.
 
 The admin dashboard includes beginner-friendly analytics for issue type distribution, assignee workload, and final priority mix. These are displayed as compact dashboard panels instead of a separate reporting page for now.
 
-Future live-search enhancement: the admin search box can update results as the admin types, after a short delay. The current Apply Filters button should stay as the reliable fallback, with live search added as a light JavaScript enhancement rather than replacing the form workflow.
+The admin dashboard also shows a simulated critical email log. When rule-based smart detection marks a submitted ticket Critical, the app logs a notification entry for `it-admins@company.com`. This proves the alert workflow without requiring SMTP credentials during local development. The dashboard only shows a limited number of recent alert logs so the main admin page stays readable. Admins can open the full Critical Alert Log page to review every log entry and filter by ticket status, issue type, recipient, date range, or keyword.
 
 Rows with a Critical smart suggestion receive a subtle red highlight, a red ticket number, and a `Smart Critical` tag beside the current IT priority.
 
@@ -213,9 +230,9 @@ Current admin ticket editing supports:
 
 Future admin workflow improvements should support:
 
-- Critical ticket email notification to admins when the rule-based detection marks a ticket Critical.
+- Real SMTP email notification to admins when the rule-based detection marks a ticket Critical.
 
-Critical email notifications should be based on detection only, not on an employee selecting Critical manually. This helps prevent priority abuse while still alerting IT when the description suggests a true urgent risk.
+Critical email notifications should be based on detection only, not on an employee selecting Critical manually. This helps prevent priority abuse while still alerting IT when the description suggests a true urgent risk. The current build logs the simulated email notification in SQLite.
 
 ## Current Form Behavior
 
@@ -291,10 +308,18 @@ The lookup also runs on the server during ticket submission. That means the form
 
 The project includes `seed_demo_data.py` for local screenshots and testing. It adds sample employees from the simulated directory and creates demo tickets with different issue types, priorities, statuses, assignees, and resolution times.
 
+The project also includes `seed_notification_logs.py`. This refreshes a small set of sample Critical alert log entries for the admin dashboard. Use it when you want the simulated email log section to show examples without submitting new Critical tickets manually.
+
 Run it from the project folder:
 
 ```powershell
 python seed_demo_data.py
+```
+
+To refresh only the sample Critical alert logs:
+
+```powershell
+python seed_notification_logs.py
 ```
 
 The script refreshes existing `[Demo]` tickets before adding the sample set, so it is safe to run again without duplicating the sample data.
@@ -353,11 +378,9 @@ You should see:
 
 ## Development Notes
 
-This project is being built one step at a time. The foundation, login and role separation, ticket submission, database storage, simulated employee directory lookup, employee ticket lookup, admin console, admin triage editing, internal IT notes, employee-visible ticket conversation, admin queue filtering, and admin analytics are now in place.
+This project is being built one step at a time. The foundation, login and role separation, ticket submission, database storage, simulated employee directory lookup, employee ticket lookup, admin dashboard, dedicated ticket queue, admin triage editing, internal IT notes, employee-visible ticket conversation, admin queue filtering and pagination, admin analytics, full Critical Alert Log, and simulated critical email logging are now in place.
 
-The next logical workflow step is either critical ticket email notification or live admin search.
-
-Live admin search is also planned as a future user-experience enhancement. The preferred approach is to keep the current Flask filter form working normally, then add JavaScript that waits briefly after typing before updating results.
+The next logical workflow step is either real SMTP email sending or analytics export.
 
 ## Visual Direction
 

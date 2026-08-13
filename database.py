@@ -199,6 +199,123 @@ def get_public_updates(ticket_id):
         ).fetchall()
 
 
+def add_notification_log(ticket_id, notification):
+    timestamp = datetime.now().isoformat(timespec="seconds")
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO notification_logs (
+              ticket_id,
+              notification_type,
+              recipient,
+              subject,
+              message,
+              delivery_status,
+              created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                ticket_id,
+                notification["notification_type"],
+                notification["recipient"],
+                notification["subject"],
+                notification["message"],
+                notification["delivery_status"],
+                timestamp,
+            ),
+        )
+        connection.commit()
+
+
+def get_recent_critical_notifications(limit=5):
+    with get_connection() as connection:
+        return connection.execute(
+            """
+            SELECT notification_logs.*,
+                   tickets.ticket_number,
+                   tickets.requester_name,
+                   tickets.issue_type,
+                   tickets.status,
+                   tickets.priority_reason
+            FROM notification_logs
+            JOIN tickets ON tickets.id = notification_logs.ticket_id
+            WHERE notification_logs.notification_type = 'Critical smart detection'
+            ORDER BY notification_logs.created_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+
+
+def get_critical_notifications(filters=None):
+    filters = filters or {}
+    where_clauses = ["notification_logs.notification_type = 'Critical smart detection'"]
+    params = []
+
+    search = filters.get("search", "").strip().lower()
+    if search:
+        where_clauses.append(
+            """
+            (
+              LOWER(tickets.ticket_number) LIKE ?
+              OR LOWER(tickets.requester_name) LIKE ?
+              OR LOWER(tickets.requester_email) LIKE ?
+              OR LOWER(tickets.issue_type) LIKE ?
+              OR LOWER(tickets.status) LIKE ?
+              OR LOWER(notification_logs.recipient) LIKE ?
+              OR LOWER(notification_logs.subject) LIKE ?
+              OR LOWER(notification_logs.message) LIKE ?
+            )
+            """
+        )
+        search_value = f"%{search}%"
+        params.extend([search_value] * 8)
+
+    if filters.get("status"):
+        where_clauses.append("tickets.status = ?")
+        params.append(filters["status"])
+
+    if filters.get("issue_type"):
+        where_clauses.append("tickets.issue_type = ?")
+        params.append(filters["issue_type"])
+
+    if filters.get("recipient"):
+        where_clauses.append("LOWER(notification_logs.recipient) LIKE ?")
+        params.append(f"%{filters['recipient'].strip().lower()}%")
+
+    if filters.get("date_from"):
+        where_clauses.append("date(notification_logs.created_at) >= date(?)")
+        params.append(filters["date_from"])
+
+    if filters.get("date_to"):
+        where_clauses.append("date(notification_logs.created_at) <= date(?)")
+        params.append(filters["date_to"])
+
+    where_sql = " AND ".join(where_clauses)
+
+    with get_connection() as connection:
+        return connection.execute(
+            f"""
+            SELECT notification_logs.*,
+                   tickets.ticket_number,
+                   tickets.requester_name,
+                   tickets.requester_email,
+                   tickets.issue_type,
+                   tickets.status,
+                   tickets.final_priority,
+                   tickets.suggested_priority,
+                   tickets.priority_reason
+            FROM notification_logs
+            JOIN tickets ON tickets.id = notification_logs.ticket_id
+            WHERE {where_sql}
+            ORDER BY notification_logs.created_at DESC
+            """,
+            params,
+        ).fetchall()
+
+
 SORT_OPTIONS = {
     "ticket": "ticket_number",
     "requester": "LOWER(requester_name)",
@@ -225,10 +342,8 @@ SORT_OPTIONS = {
 }
 
 
-def get_all_tickets(sort_by="status", sort_direction="asc", filters=None):
+def build_ticket_filter_clause(filters=None):
     filters = filters or {}
-    sort_expression = SORT_OPTIONS.get(sort_by, SORT_OPTIONS["status"])
-    direction = "DESC" if sort_direction == "desc" else "ASC"
     where_clauses = []
     params = []
 
@@ -284,6 +399,40 @@ def get_all_tickets(sort_by="status", sort_direction="asc", filters=None):
     if where_clauses:
         where_sql = "WHERE " + " AND ".join(where_clauses)
 
+    return where_sql, params
+
+
+def get_ticket_count(filters=None):
+    where_sql, params = build_ticket_filter_clause(filters)
+
+    with get_connection() as connection:
+        return connection.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM tickets
+            {where_sql}
+            """,
+            params,
+        ).fetchone()[0]
+
+
+def get_all_tickets(
+    sort_by="status",
+    sort_direction="asc",
+    filters=None,
+    limit=None,
+    offset=0,
+):
+    sort_expression = SORT_OPTIONS.get(sort_by, SORT_OPTIONS["status"])
+    direction = "DESC" if sort_direction == "desc" else "ASC"
+    where_sql, params = build_ticket_filter_clause(filters)
+    limit_sql = ""
+    query_params = list(params)
+
+    if limit is not None:
+        limit_sql = "LIMIT ? OFFSET ?"
+        query_params.extend([limit, offset])
+
     with get_connection() as connection:
         return connection.execute(
             f"""
@@ -291,8 +440,9 @@ def get_all_tickets(sort_by="status", sort_direction="asc", filters=None):
             FROM tickets
             {where_sql}
             ORDER BY {sort_expression} {direction}, created_at DESC
+            {limit_sql}
             """,
-            params,
+            query_params,
         ).fetchall()
 
 

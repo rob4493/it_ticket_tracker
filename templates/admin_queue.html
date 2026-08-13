@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Ticket Queue | IT Help Desk Ticket Tracker{% endblock %}
+
+{% block content %}
+  <section class="workspace-intro">
+    <p class="eyebrow">Admin Queue</p>
+    <h1>Ticket queue</h1>
+    <p>
+      Search, filter, sort, and open submitted tickets for detailed triage.
+    </p>
+    <div class="action-row">
+      <a class="button button-secondary" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+      <a class="button button-secondary" href="{{ url_for('critical_alert_log') }}">Critical Alerts</a>
+    </div>
+  </section>
+
+  <section class="queue-preview admin-queue" aria-labelledby="admin-queue-title">
+    <div class="section-heading-row">
+      <div>
+        <p class="eyebrow">Submitted Tickets</p>
+        <h2 id="admin-queue-title">Full queue</h2>
+      </div>
+      <span class="status-chip">Most common: {{ metrics.most_common_issue }}</span>
+    </div>
+
+    <form
+      class="admin-filter-form"
+      id="admin-filter-form"
+      method="get"
+      action="{{ url_for('admin_ticket_queue') }}"
+      data-live-search="true"
+    >
+      <input type="hidden" name="sort" value="{{ sort_by }}">
+      <input type="hidden" name="direction" value="{{ sort_direction }}">
+      <input type="hidden" name="page" value="1">
+      {% if filters.needs_owner %}
+        <input type="hidden" name="needs_owner" value="{{ filters.needs_owner }}">
+      {% endif %}
+
+      {% if filters.needs_owner %}
+        <div class="active-filter-note">
+          Showing open or in-progress tickets that do not have an assignee.
+        </div>
+      {% endif %}
+
+      <div class="admin-filter-grid">
+        <div class="form-field admin-search-field">
+          <label for="search">Search</label>
+          <input
+            id="search"
+            name="search"
+            type="search"
+            placeholder="Ticket, requester, email, or keyword"
+            value="{{ filters.search }}"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="">All statuses</option>
+            {% for status in statuses %}
+              <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>
+                {{ status }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="priority">Priority</label>
+          <select id="priority" name="priority">
+            <option value="">All priorities</option>
+            {% for priority in priorities %}
+              <option value="{{ priority }}" {% if filters.priority == priority %}selected{% endif %}>
+                {{ priority }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="issue_type">Issue Type</label>
+          <select id="issue_type" name="issue_type">
+            <option value="">All issue types</option>
+            {% for issue_type in issue_types %}
+              <option value="{{ issue_type }}" {% if filters.issue_type == issue_type %}selected{% endif %}>
+                {{ issue_type }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="assignee">Assignee</label>
+          <select id="assignee" name="assignee">
+            <option value="">All assignees</option>
+            <option value="Unassigned" {% if filters.assignee == "Unassigned" %}selected{% endif %}>Unassigned</option>
+            {% for assignee in assignee_options %}
+              <option value="{{ assignee }}" {% if filters.assignee == assignee %}selected{% endif %}>
+                {{ assignee }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="page_size">Show</label>
+          <select id="page_size" name="page_size">
+            {% for size in page_sizes %}
+              <option value="{{ size }}" {% if page_size == size %}selected{% endif %}>
+                {{ size }} tickets
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="button button-primary" type="submit">Apply Filters</button>
+        <a class="button button-secondary" href="{{ url_for('admin_ticket_queue') }}">Clear</a>
+        <span class="live-search-status" id="live-search-status" role="status" aria-live="polite">
+          Live search ready
+        </span>
+      </div>
+    </form>
+
+    <div id="admin-results">
+      {% if tickets %}
+        <div class="queue-result-summary">
+          <span>
+            Showing {{ visible_start }}-{{ visible_end }} of {{ total_tickets }} tickets
+          </span>
+          <span>Page {{ page }} of {{ total_pages }}</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            {% macro sort_heading(label, key) -%}
+              {% set next_direction = 'desc' if sort_by == key and sort_direction == 'asc' else 'asc' %}
+              <a class="sort-link {% if sort_by == key %}sort-active{% endif %}" href="{{ url_for('admin_ticket_queue', sort=key, direction=next_direction, page_size=page_size, search=filters.search, status=filters.status, priority=filters.priority, issue_type=filters.issue_type, assignee=filters.assignee, needs_owner=filters.needs_owner) }}">
+                {{ label }}
+                {% if sort_by == key %}
+                  <span aria-hidden="true">{{ "^" if sort_direction == "asc" else "v" }}</span>
+                {% endif %}
+              </a>
+            {%- endmacro %}
+
+            <thead>
+              <tr>
+                <th>{{ sort_heading("Ticket", "ticket") }}</th>
+                <th>{{ sort_heading("Requester", "requester") }}</th>
+                <th>{{ sort_heading("Issue", "issue") }}</th>
+                <th>{{ sort_heading("Priority", "priority") }}</th>
+                <th>{{ sort_heading("Status", "status") }}</th>
+                <th>{{ sort_heading("Assignee", "assignee") }}</th>
+                <th>{{ sort_heading("Created", "created") }}</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ticket in tickets %}
+                <tr class="{% if ticket.suggested_priority == 'Critical' %}critical-suggested-row{% endif %}">
+                  <td>
+                    <a class="ticket-link {% if ticket.suggested_priority == 'Critical' %}ticket-link-critical{% endif %}" href="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">
+                      {{ ticket.ticket_number }}
+                    </a>
+                  </td>
+                  <td>{{ ticket.requester_name }}</td>
+                  <td>{{ ticket.issue_type }}</td>
+                  <td>
+                    <span class="priority-stack">
+                      <span class="priority-suggestion priority-{{ ticket.final_priority|lower }}">
+                        {{ ticket.final_priority }}
+                      </span>
+                      {% if ticket.suggested_priority == "Critical" %}
+                        <span class="smart-critical-tag">Smart Critical</span>
+                      {% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="ticket-status status-{{ ticket.status|lower|replace(' ', '-') }}">
+                      {{ ticket.status }}
+                    </span>
+                  </td>
+                  <td>{{ ticket.assigned_to or "Unassigned" }}</td>
+                  <td>{{ ticket.created_at|short_datetime }}</td>
+                  <td>
+                    <a class="table-action" href="{{ url_for('admin_ticket_detail', ticket_id=ticket.id) }}">View</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <nav class="pagination-bar" aria-label="Ticket queue pages">
+          {% if page > 1 %}
+            <a class="table-action" href="{{ url_for('admin_ticket_queue', page=page - 1, page_size=page_size, sort=sort_by, direction=sort_direction, search=filters.search, status=filters.status, priority=filters.priority, issue_type=filters.issue_type, assignee=filters.assignee, needs_owner=filters.needs_owner) }}">Previous</a>
+          {% else %}
+            <span class="pagination-disabled">Previous</span>
+          {% endif %}
+
+          <span class="pagination-current">Page {{ page }} of {{ total_pages }}</span>
+
+          {% if page < total_pages %}
+            <a class="table-action" href="{{ url_for('admin_ticket_queue', page=page + 1, page_size=page_size, sort=sort_by, direction=sort_direction, search=filters.search, status=filters.status, priority=filters.priority, issue_type=filters.issue_type, assignee=filters.assignee, needs_owner=filters.needs_owner) }}">Next</a>
+          {% else %}
+            <span class="pagination-disabled">Next</span>
+          {% endif %}
+        </nav>
+      {% else %}
+        <div class="alert alert-info">
+          No tickets match the current search or filters.
+        </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    const adminFilterForm = document.querySelector("#admin-filter-form");
+    const adminResults = document.querySelector("#admin-results");
+    const liveSearchStatus = document.querySelector("#live-search-status");
+    let liveSearchTimer;
+
+    function buildAdminSearchUrl() {
+      const formData = new FormData(adminFilterForm);
+      const params = new URLSearchParams();
+
+      for (const [key, value] of formData.entries()) {
+        if (value) {
+          params.set(key, value);
+        }
+      }
+
+      return `${adminFilterForm.action}?${params.toString()}`;
+    }
+
+    async function runLiveAdminSearch() {
+      const searchUrl = buildAdminSearchUrl();
+      liveSearchStatus.textContent = "Updating results...";
+      adminResults.classList.add("results-loading");
+
+      try {
+        const response = await fetch(searchUrl, {
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+        const html = await response.text();
+        const parsedPage = new DOMParser().parseFromString(html, "text/html");
+        const updatedResults = parsedPage.querySelector("#admin-results");
+
+        if (!updatedResults) {
+          throw new Error("Updated results were not found.");
+        }
+
+        adminResults.innerHTML = updatedResults.innerHTML;
+        window.history.replaceState({}, "", searchUrl);
+        liveSearchStatus.textContent = "Results updated";
+      } catch (error) {
+        liveSearchStatus.textContent = "Live search paused. Use Apply Filters.";
+      } finally {
+        adminResults.classList.remove("results-loading");
+      }
+    }
+
+    function scheduleLiveAdminSearch() {
+      window.clearTimeout(liveSearchTimer);
+      liveSearchStatus.textContent = "Waiting for input...";
+      liveSearchTimer = window.setTimeout(runLiveAdminSearch, 350);
+    }
+
+    if (adminFilterForm && adminResults && liveSearchStatus) {
+      adminFilterForm.addEventListener("input", scheduleLiveAdminSearch);
+      adminFilterForm.addEventListener("change", scheduleLiveAdminSearch);
+    }
+  </script>
+{% endblock %}

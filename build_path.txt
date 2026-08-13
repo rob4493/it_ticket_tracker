@@ -14,15 +14,22 @@ Current app status:
 - Ticket numbers are generated automatically.
 - A simulated employee directory can find sample employees by company email or employee ID.
 - A local demo seed script can create sample tickets for screenshots and analytics testing.
+- A local notification-log seed script can refresh sample Critical alert logs for dashboard review.
 - Employees can submit tickets and look up tickets by ticket number, email, or both.
 - Employee ticket number lookup shows full details, while email-only lookup shows a compact ticket list.
 - Admins can view tickets in a queue, open ticket details, update triage fields, and review basic metrics.
+- The admin dashboard is separated from the full ticket queue to keep the overview page clean.
 - Admins can search and filter the ticket queue by keyword, status, priority, issue type, and assignee.
+- Admin search results update live while typing or changing filters, with Apply Filters kept as a fallback.
+- Admins can choose how many queue tickets to view at a time: 10, 25, 50, or 100.
 - Admins can review analytics for resolution time, issue mix, assignee workload, and priority mix.
 - Admins can add private internal IT notes to individual tickets.
 - Admins and employees can add employee-visible ticket conversation replies.
 - Smart priority suggestion is rule-based and currently used as a triage aid.
 - Critical smart-suggested tickets are visually marked in the admin queue.
+- Rule-detected Critical tickets create simulated admin email notification log entries.
+- The admin dashboard shows only recent Critical alert logs to avoid flooding the main page.
+- Admins can open a full Critical Alert Log page with search and filters.
 - The Critical priority filter includes both IT Critical and Smart Critical tickets.
 - Visible timestamps are shortened to date plus hour and minute.
 
@@ -46,9 +53,15 @@ Completed phases:
 17. Admin analytics
 18. Demo ticket data for screenshots
 19. Basic login and role separation
+20. Live admin search
+21. Simulated critical email notification log
+22. Repeatable sample Critical alert log script
+23. Full Critical Alert Log page with filters
+24. Dedicated admin Ticket Queue page
+25. Ticket Queue page-size selector and pagination
 
 Next recommended phase:
-Critical ticket email notification or live admin search.
+Real SMTP email notification or analytics export.
 
 Admin status editing is complete:
 1. Add status dropdown on the admin ticket detail page. DONE
@@ -70,7 +83,7 @@ Additional admin editing is complete:
 10. Add search and filter tools. DONE
 
 Next admin editing step:
-1. Add critical ticket email notification or live admin search.
+1. Add real SMTP email notification or analytics export.
 
 Completed admin improvements:
 - Manual priority override when IT decides priority should be raised or lowered.
@@ -79,11 +92,16 @@ Completed admin improvements:
 - Internal/private notes for IT workers.
 - Employee-visible conversation updates.
 - Search and filter tools.
+- Live admin search results while typing or changing filters.
+- Dedicated Ticket Queue page separated from the Admin Dashboard.
+- Ticket Queue page-size selector and pagination.
 - Admin analytics for resolution time, issue mix, assignee workload, and priority mix.
+- Simulated critical email notification log for rule-detected Critical tickets.
+- Repeatable sample Critical alert log script for dashboard screenshots and testing.
+- Full Critical Alert Log page linked from the dashboard, with search and filters.
 
 Planned admin improvements:
-- Live admin search results while typing, using a short delay and keeping Apply Filters as the fallback.
-- Critical ticket email notification when rule-based detection marks a ticket Critical.
+- Real SMTP email notification when rule-based detection marks a ticket Critical.
 
 Completed employee improvements:
 - Employee-visible ticket conversation.
